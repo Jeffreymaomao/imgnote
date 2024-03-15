@@ -10,7 +10,7 @@ window.addEventListener("load",(e)=>{
             console.log(imgnote);
         })
         .catch(function (err) {
-            console.log(`EROOR : ${err}`);
+            console.log(`error : ${err}`);
         });
 });
 
