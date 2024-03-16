@@ -20,10 +20,6 @@ html,body {
 }
 
 /* ------------------------------------ */
-.imgnote-img-container {
-	background-color: #999;
-	object-fit: contain;
-}
 
 .none {
 	position: absolute;
@@ -68,19 +64,40 @@ html,body {
 	transform: translate(-50%,0);
 }
 
-.center{
+/* ------------------------------------ */
+.imgnote-img-container {
+	background-color: #ccc;
+	object-fit: contain;
+}
+
+.imgnote-img-container.center{
 	height: 100%;
 	width: 100%;
 }
-.left-center,
-.right-center {
+.imgnote-img-container.left-center,
+.imgnote-img-container.right-center {
 	height: 100%;
 	width: 50%;
 }
-.top-center,
-.bottom-center{
+.imgnote-img-container.top-center,
+.imgnote-img-container.bottom-center{
 	height: 50%;
 	width: 100%;
+}
+
+.imgnote-img-container.left-center {
+	border-right: 1px solid #888;
+}
+.imgnote-img-container.right-center {
+	border-left: 1px solid #888;
+}
+
+.imgnote-img-container.top-center{
+	border-bottom: 1px solid #888;
+}
+
+.imgnote-img-container.bottom-center{
+	border-top: 1px solid #888;
 }
 
 /* --- */
@@ -94,7 +111,6 @@ html,body {
 	user-select: none;
 }
 
-
 /* --- */
 
 .imgnote-note {
@@ -103,7 +119,6 @@ html,body {
 	background-color: red;
 	border-radius: 100%;
 	border: 0.5px solid #000;
-/*	box-shadow: 0px 0px 4px rgb(100,100,200);*/
 
 	transition: box-shadow 0.3s ease, 
 				transform 0.3s ease,
@@ -112,8 +127,6 @@ html,body {
 
 .imgnote-note:hover {
     transform: scale(1.2);
-    background-color: rgb(20,100,10);
-/*	box-shadow: 0px 0px 10px rgb(20,100,10);*/
 }
 
 .imgnote-note.selected {
@@ -131,15 +144,29 @@ html,body {
     }
 }
 
-
-
-
-
 /* --- */
 .imgnote-note-container {
 	background-color: #fff;
 	overflow: scroll;
-	padding: 10px;
+	padding: 0px;
+	margin: 0px;
+}
+
+.imgnote-note-container.center{
+	height: 100%;
+	width: 100%;
+}
+.imgnote-note-container.left-center,
+.imgnote-note-container.right-center {
+	height: auto;
+	width: 50%;
+}
+.imgnote-note-container.top-center,
+.imgnote-note-container.bottom-center{
+	height: auto;
+	top: 0;
+	bottom: unset;
+	width: 100%;
 }
 
 /* --- */
@@ -147,32 +174,17 @@ html,body {
 	width: 100%;
 }
 
-.imgnote-note-text {
-	width: 100%;
-	resize: vertical;
-	margin: 0;
-	margin-top: 10px;
-	background-color: #fff;
-	border: 0.5px solid #ccc;
-	color: #888;
-}
-
-.imgnote-note-text::placeholder {
-  color: #888;
-  opacity: 1;
-}
-
 h4.imgnote-note-label {
 	font-size: 15pt;
 	margin: 0;
-	padding: 10px 0;
+	padding: 10px 20px;
     color: #000;
 }
 
 h5.imgnote-note-label {
 	font-size: 10pt;
 	margin: 0;
-	padding: 0px 0;
+	padding: 0px 20px;
     color: #000;
 }
 
@@ -188,16 +200,114 @@ label.imgnote-note-value {
     color: #ccc;
 }
 
+.imgnote-note-text {
+	width: calc(100% - 20px);
+	resize: vertical;
+	margin: 10px;
+	background-color: #fff;
+	border: 0.5px solid #ccc;
+	color: #888;
+}
+
+.imgnote-note-text::placeholder {
+  color: #888;
+  opacity: 1;
+}
 
 
+/* --- */
+.imgnote-blur-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(5px);
+    z-index: 1000; /* Adjust z-index as needed */
+}
 
+.imgnote-fullscreen-message-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1001; /* Adjust z-index as needed */
+}
 
+.imgnote-fullscreen-message-box {
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
 
+    background-color: white;
+    padding: 20px;
+    padding-bottom: 15px;
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);  
+    width: 300px;
+}
+.imgnote-fullscreen-message-box.code{
+	width: 50%;
+	min-width: 200px;
+	max-width: 800px;
+	max-height: 400px;
+	overflow: scroll;
+}
 
+.imgnote-fullscreen-message-text {
+	overflow: scroll;
+    max-height: 100%;
+}
 
+div.imgnote-fullscreen-message-text{
+	text-align: center;
+}
 
+pre.imgnote-fullscreen-message-text {
+	font-family: monospace;
+	font-size: 10pt;
+	tab-size: 4;
+	margin: 0;
+	padding: 0;
+}
 
+.imgnote-fullscreen-message-buttons-container {
+	margin-top: 15px;
+	width: 100%;
+	text-align: center;
+}
 
+.imgnote-fullscreen-message-button {
+	display: inline-block;
+	margin: 0 10px;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    z-index: 1005;
+    background-color: #999;
+	color: #fff;
+	border: 3px solid #fff;
+    outline: 3px solid #fff;
+}
+
+.imgnote-fullscreen-message-button:focus {
+	border: 3px solid #fff;
+    outline: 3px solid rgb(10,100,255);
+}
+
+.imgnote-fullscreen-message-close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    font-size: 20px;
+    user-select: none;
+}
 
 
 
