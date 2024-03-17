@@ -241,39 +241,83 @@ label.imgnote-note-value {
 	transform: translate(-50%, -50%);
 
     background-color: white;
-    padding: 20px;
-    padding-bottom: 15px;
     border-radius: 10px;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);  
-    width: 300px;
+    width: 40%;
+    min-width: 300px;
+
+    padding: 20px;
+    padding-top: 35pt;
+    padding-bottom: 15px;
 }
-.imgnote-fullscreen-message-box.code{
-	width: 50%;
+
+.imgnote-fullscreen-message-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+
+	overflow: hidden;
+    max-height: 100%;
+    text-align: center;
+}
+
+.imgnote-fullscreen-message-code {
+	width: 100%;
 	min-width: 200px;
 	max-width: 800px;
 	max-height: 400px;
 	overflow: scroll;
-}
-
-.imgnote-fullscreen-message-text {
-	overflow: scroll;
-    max-height: 100%;
-}
-
-div.imgnote-fullscreen-message-text{
-	text-align: center;
-}
-
-pre.imgnote-fullscreen-message-text {
 	font-family: monospace;
 	font-size: 10pt;
 	tab-size: 4;
 	margin: 0;
-	padding: 0;
+	padding: 10px;
+	border: 0.5px solid #ccc;
+	border-radius: 10px;
+	background-color: rgba(0,0,0,0.0);
+}
+.imgnote-fullscreen-message-code.copyed{
+	background-color: rgba(0,0,0,0.05);
+}
+
+.imgnote-fullscreen-message-code::-webkit-scrollbar {
+  display: none;
+}
+
+.imgnote-fullscreen-message-copy-button {
+    position: absolute;
+    display: block;
+    top: 7px;
+    right: 7px;
+    width: 35px;
+    height: 35px;
+	background-image: url("icon/copy.svg");
+	background-repeat: no-repeat;
+	background-position: center;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    transform: scale(1.0);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.imgnote-fullscreen-message-copy-button:hover {
+    transform: scale(1.1);
+    background-color: #0056b3;
+}
+
+.imgnote-fullscreen-message-copy-button:active {
+    transform: scale(1.0);
+    background-color: #0056bb;
 }
 
 .imgnote-fullscreen-message-buttons-container {
-	margin-top: 15px;
+	margin-top: 5px;
 	width: 100%;
 	text-align: center;
 }
@@ -299,14 +343,24 @@ pre.imgnote-fullscreen-message-text {
 
 .imgnote-fullscreen-message-close-button {
     position: absolute;
-    top: 10px;
+    top: 50%;
     right: 10px;
+    transform: translateY(-50%) scale(1.0);
     padding: 5px;
     border: none;
     background-color: transparent;
     cursor: pointer;
     font-size: 20px;
     user-select: none;
+    transition: all 0.3s ease;
+}
+
+.imgnote-fullscreen-message-close-button:hover{
+	transform: translateY(-50%) scale(1.2);
+}
+
+.imgnote-fullscreen-message-close-button:active{
+	transform: translateY(-50%) scale(1.0);
 }
 
 

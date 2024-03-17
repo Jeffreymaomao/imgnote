@@ -14,6 +14,9 @@ window.addEventListener("load", (e) => {
         });
 });
 
+
+
+
 class ImgNote {
     constructor(DOMparent, data = {}) {
         this.data = data;
@@ -34,7 +37,7 @@ class ImgNote {
         this.initializeDOM(DOMparent);
         this.initializeEventListener();
         document.title = `ImgNote - ${data.name}`;
-
+        console.log(this.md5(JSON.stringify(this.data)));
         // console.log(window.localStorage)
         // console.log(this.md5("Hello World!"));
     }
@@ -204,23 +207,19 @@ class ImgNote {
 
     windowMousedownEventListener(e) {
         this.mousedown = true;
-        if (this.keys.code === 'KeyD') {
-            this.dom.img.style.cursor = "none";
-        }
     }
 
     windowMouseupEventListener(e) {
         this.mousedown = false;
-        this.dom.img.style.cursor = "default";
+        this.dom.notes.forEach(e=>e.style.cursor="");
     }
 
     winowKeydownEventListener(e) {
-
         this.keydown = true;
         const key = e.key;
         const code = e.code;
         const metaKey = e.metaKey;
-        const ctrlKey = e.ctrlKey;
+        const ctrlKey = e.ctrlKey||e.metaKey;
         const altKey = e.altKey;
         const shiftKey = e.shiftKey;
         this.keys = {
@@ -258,6 +257,8 @@ class ImgNote {
                 e.stopPropagation();
                 this.download();
             } else if (code === 'Backspace') {
+                e.preventDefault();
+                e.stopPropagation();
                 this.deleteSelectedNote();
             }
         }
@@ -265,6 +266,8 @@ class ImgNote {
         // add note point
         if (this.keys.code==="KeyA") {
             this.dom.img.style.cursor = 'crosshair';
+        } else if (this.keys.code==="KeyD") {
+            this.dom.img.style.cursor = 'grab';
         }
     }
 
@@ -298,6 +301,7 @@ class ImgNote {
 
         element.addEventListener('mousedown', (e) => {
             mouseDown = true;
+            if (this.keys.code === 'KeyD') element.style.cursor = "none";
             offsetX = e.clientX - element.getBoundingClientRect().left;
             offsetY = e.clientY - element.getBoundingClientRect().top;
 
@@ -308,6 +312,7 @@ class ImgNote {
         document.addEventListener('mouseup', () => {
             if (!mouseDown) return;
             mouseDown = false;
+            element.style.cursor = "";
             document.removeEventListener('mousemove', onMouseMove);
         });
     }
@@ -394,7 +399,6 @@ class ImgNote {
             noteDOM.style.marginTop = `-${this.size/2}px`;
             noteDOM.style.marginLeft = `-${this.size/2}px`;
         })
-
     }
 
     // ---
@@ -415,7 +419,8 @@ class ImgNote {
         this.displayFullScreenMessage({
             close: true,
             style: "code",
-            messageText: JSON.stringify(this.data, null, "\t"),
+            messageText: "Dataset",
+            code: JSON.stringify(this.data, null, "\t")
         });
     }
 
@@ -486,6 +491,14 @@ class ImgNote {
 
     // ---
 
+    displayLocalStorage(){
+        const keys = Object.keys(localStorage);    
+        keys.forEach(key => {
+            const value = localStorage.getItem(key);
+            console.log(`${key}: ${value}`);
+        });
+    }
+
     displaySelectedNote() {
         this.dom.note = {};
         this.dom.note.title = this.createAndAppendElement(this.dom.noteContainer, "div", {
@@ -495,7 +508,8 @@ class ImgNote {
         this.dom.note.text = this.createAndAppendElement(this.dom.noteContainer, "textarea", {
             class: "imgnote-note-text",
             placeholder: "type some notes...",
-            value: this.selected.note.text || ''
+            value: this.selected.note.text || '',
+            tabIndex: -1
         });
 
         this.dom.note.labelId = this.createAndAppendElement(this.dom.note.title, "h4", {
@@ -516,7 +530,8 @@ class ImgNote {
         this.dom.note.valueId = this.createAndAppendElement(this.dom.note.labelId, "input", {
             class: "imgnote-note-value",
             placeholder: "type id...",
-            value: this.selected.note.id
+            value: this.selected.note.id,
+            tabIndex: -1
         });
 
         this.dom.note.valueX = this.createAndAppendElement(this.dom.note.labelX, "label", {
@@ -542,6 +557,7 @@ class ImgNote {
 
     displayFullScreenMessage(config = {}) {
         if (this.fullscreenMessage) this.closeFullScreenMessage();
+        this.dom.message = {};
         // - config.messageText (string)
         // - config.style ("default"|"code"|"warm")
 
@@ -558,66 +574,92 @@ class ImgNote {
         // - config.closeEventListener (function) 
         // - config.defaultButton ("confirm"|"cancel")
 
-        if (!config.style) config.style = "default";
-
         // Create the background container and blur effect
         this.dom.blurContainer = this.createAndAppendElement(this.dom.root, "div", {
             class: "imgnote-blur-container"
         });
 
         // Create the message container
-        this.dom.messageContainer = this.createAndAppendElement(this.dom.root, "div", {
+        this.dom.message.container = this.createAndAppendElement(this.dom.root, "div", {
             class: "imgnote-fullscreen-message-container"
         });
 
 
         // Create the message box
-        this.dom.messageBox = this.createAndAppendElement(this.dom.messageContainer, "div", {
+        this.dom.message.box = this.createAndAppendElement(this.dom.message.container, "div", {
             class: "imgnote-fullscreen-message-box"
         });
 
-        if(config.style==="code") this.dom.messageBox.classList.add("code");
-
         // Create the message text
-        let textDomTagName = "div";
-        if (config.style === "code") textDomTagName = "pre";
-        this.dom.messageText = this.createAndAppendElement(this.dom.messageBox, textDomTagName, {
+        this.dom.message.text = this.createAndAppendElement(this.dom.message.box, "div", {
             class: "imgnote-fullscreen-message-text",
             innerText: config.messageText || ""
         });
 
+        if(config.code){
+            this.dom.message.codeContainer = this.createAndAppendElement(this.dom.message.box, "div", {
+                class: "imgnote-fullscreen-message-code-container"
+            });
+
+            // Create the code element
+            this.dom.message.code = this.createAndAppendElement(this.dom.message.codeContainer, "pre", {
+                class: "imgnote-fullscreen-message-code",
+                innerText: config.code || ""
+            });
+
+            // Create the copy button
+            this.dom.message.copyButton = this.createAndAppendElement(this.dom.message.codeContainer, "button", {
+                class: "imgnote-fullscreen-message-copy-button",
+            });
+
+            // Add event listener to copy button
+            this.dom.message.copyButton.addEventListener("click", () => {
+                // Copy code to clipboard
+                const codeText = this.dom.message.code.innerText;
+                navigator.clipboard.writeText(codeText).then(() => {
+                    this.dom.message.code.classList.add("copyed");
+                }).catch((error) => {
+                    console.error("Failed to copy code: ", error);
+                });
+            });  
+        }
+
+
+
+        //  --- button ---
+
         if (config.cancel||config.confirm) {
             // Create the buttons container
-            this.dom.buttonsContainer = this.createAndAppendElement(this.dom.messageBox, "div", {
+            this.dom.message.buttonsContainer = this.createAndAppendElement(this.dom.message.box, "div", {
                 class: "imgnote-fullscreen-message-buttons-container"
             });
         }
 
         // Create the cancel button
         if (config.cancel) {
-            this.dom.cancelButton = this.createAndAppendElement(this.dom.buttonsContainer, "button", {
+            this.dom.message.cancelButton = this.createAndAppendElement(this.dom.message.buttonsContainer, "button", {
                 class: "imgnote-fullscreen-message-button imgnote-cancel-button",
                 innerText: config.cancelText || "Cancel"
             });
             if(config.cancelColor){
-                this.dom.cancelButton.style.backgroundColor = config.cancelColor;
+                this.dom.message.cancelButton.style.backgroundColor = config.cancelColor;
             }
         }
 
         // Create the confirm button
         if (config.confirm) {
-            this.dom.confirmButton = this.createAndAppendElement(this.dom.buttonsContainer, "button", {
+            this.dom.message.confirmButton = this.createAndAppendElement(this.dom.message.buttonsContainer, "button", {
                 class: "imgnote-fullscreen-message-button imgnote-confirm-button",
                 innerText: config.confirmText || "Confirm"
             });
             if(config.confirmColor){
-                this.dom.confirmButton.style.backgroundColor = config.confirmColor;
+                this.dom.message.confirmButton.style.backgroundColor = config.confirmColor;
             }
         }
 
         if(config.close){
             // Create the close button
-            this.dom.closeButton = this.createAndAppendElement(this.dom.messageBox, "button", {
+            this.dom.message.closeButton = this.createAndAppendElement(this.dom.message.text, "button", {
                 class: "imgnote-fullscreen-message-close-button",
                 innerText: "×"
             });
@@ -625,30 +667,30 @@ class ImgNote {
 
         // Set focus to the default button
         if(config.defaultButton){
-            if (config.defaultButton === "confirm" && this.dom.confirmButton) {
-                this.dom.confirmButton.focus();
-            } else if (config.defaultButton === "cancel" && this.dom.cancelButton) {
-                this.dom.cancelButton.focus();
+            if (config.defaultButton === "confirm" && this.dom.message.confirmButton) {
+                this.dom.message.confirmButton.focus();
+            } else if (config.defaultButton === "cancel" && this.dom.message.cancelButton) {
+                this.dom.message.cancelButton.focus();
             }
         }
 
         // Event listeners for buttons
         if (config.confirm) {
-            this.dom.confirmButton.addEventListener("click", () => {
+            this.dom.message.confirmButton.addEventListener("click", () => {
                 // Handle confirm button click
                 this.closeFullScreenMessage();
                 if (config.confirmEventListener) config.confirmEventListener();
             });
         }
         if (config.cancel) {
-            this.dom.cancelButton.addEventListener("click", () => {
+            this.dom.message.cancelButton.addEventListener("click", () => {
                 // Handle cancel button click
                 this.closeFullScreenMessage();
                 if (config.cancelEventListener) config.cancelEventListener();
             });
         }
         if(config.close){
-            this.dom.closeButton.addEventListener("click", () => {
+            this.dom.message.closeButton.addEventListener("click", () => {
                 // Handle close button click
                 this.closeFullScreenMessage();
                 if (config.closeEventListener) config.closeEventListener();
@@ -659,12 +701,13 @@ class ImgNote {
 
     closeFullScreenMessage() {
         // Remove message elements
-        if (this.dom.messageContainer) {
-            this.dom.messageContainer.remove();
+        if (this.dom.message.container) {
+            this.dom.message.container.remove();
         }
         if (this.dom.blurContainer) {
             this.dom.blurContainer.remove();
         }
+        this.dom.message = {};
         this.fullscreenMessage = false;
     }
     // ---
