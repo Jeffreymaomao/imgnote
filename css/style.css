@@ -21,6 +21,134 @@ html,body {
 
 /* ------------------------------------ */
 
+.imgnote-initialize-container {
+	width: 100vw;
+	height: 100vh;
+}
+
+.imgnote-initialize-img-container {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 50%;
+	height: 100%;
+    text-align: center;
+    cursor: pointer;
+    border-right: 0.5px solid #ccc;
+}
+
+.imgnote-initialize-img-input {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+
+	width: calc(100% - 20px);
+	height: calc(100% - 20px);
+    border: 2px dashed #ccc;
+    outline: none;
+    border-radius: 10px;
+    cursor: pointer;
+    overflow: hidden;
+    background-color: rgba(0,0,0,0.05);
+	box-shadow: none;
+}
+
+.imgnote-initialize-img-input.dragover{
+	background-color: rgba(0,0,0,0.1);
+	box-shadow: 0 0 15px #ccc;
+}
+
+.imgnote-initialize-img-text{
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.imgnote-initialize-img-preview {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: -1;
+	border: none;
+    outline: none;
+	object-fit: contain;
+}
+
+.imgnote-initialize-img-preview.loaded {
+	width: 100%;
+	height: 100%;
+	z-index: 1;
+}
+
+.imgnote-initialize-img-preview.failed {
+	top: 30%;
+	z-index: 1;
+}
+
+/* --- */
+
+.imgnote-initialize-data-container {
+	position: absolute;
+	top: 0;
+	right: 0;
+    width: 50%;
+    height: 100%;
+    border-left: 0.5px solid #ccc;
+}
+
+.imgnote-initialize-data-text {
+	margin: 10px;
+	width: calc(100% - 20px);
+	height: calc(100% - 20px);
+	resize: none;
+    padding: 10px;
+    border-radius: 10px;
+    box-sizing: border-box;
+    overflow: scroll;
+	font-family: monospace;
+	font-size: 10pt;
+	tab-size: 4;
+}
+
+.imgnote-initialize-data-text.dragover{
+	background-color: #ccc;
+}
+
+.imgnote-initialize-data-open-file {
+    position: absolute;
+    display: block;
+    top: 20px;
+    right: 20px;
+    width: 35px;
+    height: 35px;
+	background-image: url("icon/open.svg");
+	background-repeat: no-repeat;
+	background-position: center;
+    color: #fff;
+    background-color: #007bff;
+    border: none;
+    transform: scale(1.0);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.imgnote-initialize-data-open-file:hover {
+    transform: scale(1.1);
+    background-color: #0056b3;
+}
+
+.imgnote-initialize-data-open-file:active {
+    transform: scale(1.0);
+    background-color: #0056bb;
+}
+
+/* ------------------------------------ */
+
 .none {
 	position: absolute;
 	left: 50%;
@@ -165,7 +293,10 @@ html,body {
 .imgnote-note-container.bottom-center{
 	height: auto;
 	top: 0;
-	bottom: unset;
+/*	bottom: unset;*/
+/* red red red red red red red red red red red red red red 
+ red red red red red red red red red red red red red red 
+ red red red red red red red red red red red red red red */
 	width: 100%;
 }
 
@@ -362,16 +493,3 @@ label.imgnote-note-value {
 .imgnote-fullscreen-message-close-button:active{
 	transform: translateY(-50%) scale(1.0);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

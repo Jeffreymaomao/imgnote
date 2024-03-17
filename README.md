@@ -18,3 +18,7 @@
 | **File**              |                  |                     |
 | Export                | Ctrl + e         | Command + e         |
 | Display as JSON file  | Ctrl + d         | Command + d         |
+
+## Need Improve
+
+- Point shape (ex: computer, table, printer,...) 

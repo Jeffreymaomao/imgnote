@@ -14,13 +14,18 @@ window.addEventListener("load", (e) => {
         });
 });
 
-
-
-
 class ImgNote {
     constructor(DOMparent, data = {}) {
+        this.saved = true;
+        this.imgURL = null;
+        this.imgBase64 = null;
         this.data = data;
-        this.size = this.data.size || 4;
+        this.size = data.size || 4;
+        this.fullscreenMessage = false;
+        this.dom = {
+            root: DOMparent,
+            note: {}
+        }
         this.keys = {
             ctrlKey: false,
             shiftKey: false,
@@ -33,21 +38,216 @@ class ImgNote {
             note: null,
             dom: null
         }
-        this.fullscreenMessage = false;
-        this.initializeDOM(DOMparent);
-        this.initializeEventListener();
-        document.title = `ImgNote - ${data.name}`;
-        console.log(this.md5(JSON.stringify(this.data)));
-        // console.log(window.localStorage)
-        // console.log(this.md5("Hello World!"));
+        // this.displayLocalStorage();
+        const storedData = this.retrieveFromLocalStorage();
+        if (storedData) {
+            this.data = storedData.data;
+            this.imgBase64 = storedData.imgBase64;
+            this.initializeMainDOM();
+        } else {
+            this.initializeLoadDOM()
+                .then(()=>{
+                    this.initializeMainDOM();
+                    document.title = `ImgNote - ${this.data.name || 'Untitled'}`;
+                })
+                .catch(error => {
+                    console.error("Error initializing:", error);
+                });
+        }
     }
 
-    initializeDOM(parentNode) {
-        this.dom = {};
-        this.dom.root = parentNode;
+    initializeLoadDOM() {
+        return new Promise((resolve, reject) => {
+            const initializeContainer = this.createAndAppendElement(this.dom.root, 'div', {
+                class: 'imgnote-initialize-container'
+            });
+            this.dom.initializeContainer = initializeContainer;
+
+            // 左側照片輸入區域
+            const imgContainer = this.createAndAppendElement(initializeContainer, 'div', {
+                class: 'imgnote-initialize-img-container'
+            });
+
+            // 圖片拖放區域
+            const imgDropArea = this.createAndAppendElement(imgContainer, 'div', {
+                class: 'imgnote-initialize-img-input'
+            });
+
+            const imgText = this.createAndAppendElement(imgDropArea, 'div', {
+                class: 'imgnote-initialize-img-text',
+                textContent: 'Drop an image here or click to select'
+            });
+
+            const imgPreview = this.createAndAppendElement(imgDropArea, 'img', {
+                class: 'imgnote-initialize-img-preview'
+            });
+
+            // 圖片輸入
+            const imgInput = this.createAndAppendElement(imgDropArea, 'input', {
+                type: 'file',
+                accept: 'image/*',
+                style: 'display: none;'
+            });
+
+            // 點擊選擇圖片的標籤觸發文件輸入
+            imgDropArea.addEventListener('click', () => {
+                imgInput.click();
+            });
+            imgDropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                imgDropArea.classList.add("dragover")
+            });
+            imgDropArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                imgDropArea.classList.remove("dragover")
+            });
+
+            // ---
+
+            // 右側數據輸入區域
+            const dataContainer = this.createAndAppendElement(initializeContainer, 'div', {
+                class: 'imgnote-initialize-data-container'
+            });
+
+            // 文字輸入框
+            const dataTextArea = this.createAndAppendElement(dataContainer, 'textarea', {
+                class: 'imgnote-initialize-data-text',
+                placeholder: 'Enter JSON data here...'
+            });
+
+            const dataInput = this.createAndAppendElement(dataContainer, 'input', {
+                id: 'dataInput',
+                type: 'file',
+                accept: '.json',
+                style: 'display: none;' // Hide the input element
+            });
+
+            const dataOpenFileButton = this.createAndAppendElement(dataContainer, "button", {
+                class: 'imgnote-initialize-data-open-file',
+            });
+
+            dataOpenFileButton.addEventListener("click",(e)=>{
+                dataInput.click();
+            });
+            dataTextArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dataTextArea.classList.add("dragover");
+            });
+            dataTextArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dataTextArea.classList.remove("dragover");
+            });
+
+            // ---
+
+            // Create two promises for imgInput and dataInput changes
+            const imgInputPromise = new Promise((resolveImgInput) => {
+                imgDropArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    imgDropArea.classList.remove("dragover")
+                    const file = e.dataTransfer.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const base64 = event.target.result;
+                            this.imgBase64 = base64;
+                            imgPreview.src = base64;
+                            imgPreview.alt = file.name;
+                            imgPreview.addEventListener("load",(e)=>{
+                                resolveImgInput();
+                                imgPreview.classList.add("loaded");
+                                imgPreview.classList.remove("failed");
+                            });
+                            imgPreview.addEventListener("error",(e)=>{
+                                imgPreview.classList.add("failed");
+                                imgPreview.classList.remove("loaded");
+                            });
+                        }
+                        reader.readAsDataURL(file); // 開始讀取文件
+                    }
+                });
+
+                imgInput.addEventListener('change', (e) => {
+                    e.preventDefault();
+                    const file = e.target.files[0];
+                    imgInput.classList.remove("dragover")
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => { // 使用事件對象 event
+                            const base64 = event.target.result;
+                            this.imgBase64 = base64;
+                            imgPreview.src = base64;
+                            imgPreview.alt = file.name; // 設置圖片的 alt 屬性為文件名
+                            resolveImgInput();
+                            imgPreview.classList.add("loaded");
+                        };
+                        reader.readAsDataURL(file); // 開始讀取文件
+                    }
+                });
+            });
+
+            const dataInputPromise = new Promise((resolveDataInput) => {
+                dataTextArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dataTextArea.classList.remove("dragover");
+                    const file = e.dataTransfer.files[0];
+                    console.log(file.name)
+                    if (file&&file.name.endsWith(".json")) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            try {
+                                const data = JSON.parse(event.target.result); 
+                                this.data = data;
+                                dataTextArea.innerHTML = JSON.stringify(data,null,4);
+                                resolveDataInput(); // Resolve when data input changes
+                            } catch (error) {
+                                console.error("Error parsing JSON:", error);
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                });
+                dataInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            try {
+                                const data = JSON.parse(event.target.result); 
+                                this.data = data;
+                                dataTextArea.innerHTML = JSON.stringify(data,null,4);
+                                resolveDataInput(); // Resolve when data input changes
+                            } catch (error) {
+                                console.error("Error parsing JSON:", error);
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                });
+            });
+
+            // Resolve the main promise when both input promises are resolved
+            Promise.all([imgInputPromise, dataInputPromise]).then(() => {
+                resolve();
+            });
+        });
+    }
+
+
+    save(){
+        const id = this.md5(JSON.stringify(this.data));
+        const saveTime = new Date();
+        const data = this.data;
+        const img = this.img2base64();
+        console.log(JSON.stringify(this.data))
+    }
+
+    initializeMainDOM() {
+        if(this.dom.initializeContainer) this.dom.initializeContainer.remove();
+        
         this.dom.root.classList.add("imgnote-app");
 
-        this.dom.container = this.createAndAppendElement(parentNode, "div", {
+        this.dom.container = this.createAndAppendElement(this.dom.root, "div", {
             class: "imgnote-container center"
         });
 
@@ -64,13 +264,13 @@ class ImgNote {
         });
 
         this.dom.img = this.createAndAppendElement(this.dom.imgContainer, "img", {
-            src: this.data.image,
+            src: this.imgBase64,
             draggable: false,
             class: "imgnote-img center",
             alt: "main Image"
         });
 
-        this.dom.note = {};
+        this.initializeEventListener();
     }
 
     initializeEventListener() {
@@ -85,6 +285,7 @@ class ImgNote {
         window.addEventListener('keyup', this.windowKeyupEventListener.bind(this));
         window.addEventListener('mousedown', this.windowMousedownEventListener.bind(this));
         window.addEventListener('mouseup', this.windowMouseupEventListener.bind(this));
+        window.addEventListener('beforeunload', this.windowBeforeUnloadEventListener.bind(this));
     }
 
     // ---
@@ -163,6 +364,7 @@ class ImgNote {
                 x: mouse.x,
                 y: mouse.y
             });
+            this.saved = false;
         } else {
             const noteDOM = document.elementFromPoint(e.clientX, e.clientY);
             const tagName = noteDOM.tagName.toLowerCase();
@@ -173,7 +375,7 @@ class ImgNote {
                 dom: null
             }
             // this.dom.noteContainer.innerHTML = '';
-            Object.values(this.dom.note).forEach(item=>{item.remove()})
+            if(this.dom.note) Object.values(this.dom.note).forEach(item=>{item.remove()})
             if (tagName === 'img') return;
 
             // if tag name is in the image and selected a note DOM
@@ -188,6 +390,7 @@ class ImgNote {
 
     imgMousemoveEventListener(e) {
         if (this.selected.id && this.mousedown) {
+            this.saved = false;
             if (this.dom.note) {
                 this.dom.note.valueId.innerText = this.selected.note.id;
                 if (this.selected.note.text) {
@@ -234,18 +437,25 @@ class ImgNote {
         if (altKey) {
             if (code === 'Digit0') {
                 this.changeMode('center');
+                this.saved = false;
             } else if (code === 'Digit1') {
                 this.changeMode('left');
+                this.saved = false;
             } else if (code === 'Digit2') {
                 this.changeMode('top');
+                this.saved = false;
             } else if (code === 'Digit3') {
                 this.changeMode('right');
+                this.saved = false;
             } else if (code === 'Digit4') {
                 this.changeMode('bottom');
+                this.saved = false;
             } else if (code === 'ArrowUp'){
                 this.increaseSize();
+                this.saved = false;
             }  else if (code === 'ArrowDown'){
                 this.decreaseSize();
+                this.saved = false;
             }
         } else if (ctrlKey) {
             if (code === 'KeyE') {
@@ -263,7 +473,21 @@ class ImgNote {
             }
         }
 
-        // add note point
+        // I don't want to let user to move the point only click the keybord.
+        // if (!altKey&&(this.selected.note&&this.selected.dom&&this.selected.id)) {
+        //     if(code==="ArrowLeft"){
+        //         console.log(code)
+        //     } else if(code==="ArrowRight"){
+        //         console.log(code)
+        //     } else if(code==="ArrowUp"){
+        //         console.log(code)
+        //     } else if(code==="ArrowDown"){
+        //         console.log(code)
+
+        //     }
+        // }
+
+        // cursor
         if (this.keys.code==="KeyA") {
             this.dom.img.style.cursor = 'crosshair';
         } else if (this.keys.code==="KeyD") {
@@ -280,6 +504,15 @@ class ImgNote {
             code: null
         };
         this.dom.img.style.cursor = "default";
+    }
+
+    windowBeforeUnloadEventListener(e){
+        if (!this.saved) {
+            // beforeunload
+            const confirmationMessage = 'Your changes are not saved. Are you sure you want to leave?';
+            (e || window.event).returnValue = confirmationMessage; // For legacy support
+            return confirmationMessage;
+        }
     }
 
     addDragEventListener(element) {
@@ -398,7 +631,7 @@ class ImgNote {
             noteDOM.style.height = `${this.size}px`;
             noteDOM.style.marginTop = `-${this.size/2}px`;
             noteDOM.style.marginLeft = `-${this.size/2}px`;
-        })
+        });
     }
 
     // ---
@@ -489,10 +722,23 @@ class ImgNote {
         return element;
     }
 
+    retrieveFromLocalStorage() {
+        // Retrieve data from localStorage based on id
+        const keys = Object.keys(localStorage);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            if (key.startsWith("imgnote-")) {
+                return JSON.parse(localStorage.getItem(key));
+            }
+        }
+        return null;
+    }
+
     // ---
 
     displayLocalStorage(){
-        const keys = Object.keys(localStorage);    
+        const keys = Object.keys(localStorage);
+        console.log(`length of localStorage: ${keys.length}`)   
         keys.forEach(key => {
             const value = localStorage.getItem(key);
             console.log(`${key}: ${value}`);
@@ -545,11 +791,13 @@ class ImgNote {
         });
 
         this.dom.note.valueId.addEventListener("input", (e) => {
+            this.saved = false;
             this.selected.dom.id = this.dom.note.valueId.value;
             this.selected.note.id = this.dom.note.valueId.value;
         });
 
         this.dom.note.text.addEventListener("input", (e) => {
+            this.saved = false;
             this.selected.note.text = this.dom.note.text.value;
             if (!this.selected.note.text) this.selected.note.text = undefined;
         });
@@ -710,8 +958,9 @@ class ImgNote {
         this.dom.message = {};
         this.fullscreenMessage = false;
     }
+
     // ---
-    img2Base64(imageUrl, callback) {
+    img2base64(imageUrl, callback) {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.onload = function() {
