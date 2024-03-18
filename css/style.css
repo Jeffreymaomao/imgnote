@@ -2,6 +2,11 @@ html,body {
 	overflow: hidden;
 }
 
+body {
+    font-family: "San Francisco", "Helvetica Neue", Arial, sans-serif;
+}
+
+
 *{
 	position: relative;
 	box-sizing: border-box;
