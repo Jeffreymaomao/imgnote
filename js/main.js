@@ -7,6 +7,7 @@ window.addEventListener("load", (e) => {
 
 class ImgNote {
     constructor(DOMparent) {
+        this.isMac = navigator.platform.toLowerCase().indexOf('mac')>=0;
         this.saved = true;
         this.imgURL = null;
         this.imgBase64 = this.createDefaultImgBase64(700,600);
@@ -44,7 +45,8 @@ class ImgNote {
             this.imgBase64 = storedData.imgBase64;
             this.initializeMainDOM();
         } else {
-            this.loadingNewData();
+            this.displayHelp()
+            // this.loadingNewData();
         }
     }
 
@@ -269,8 +271,7 @@ class ImgNote {
         this.keydown = true;
         const key = e.key;
         const code = e.code;
-        const metaKey = e.metaKey;
-        const ctrlKey = e.ctrlKey||e.metaKey;
+        const ctrlKey = this.isMac ? e.metaKey : e.ctrlKey;
         const altKey = e.altKey;
         const shiftKey = e.shiftKey;
         this.keys = {
@@ -307,6 +308,10 @@ class ImgNote {
                 e.preventDefault();
                 e.stopPropagation();
                 this.toogleTitle();
+            }  else if (code === 'KeyH') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.displayHelp();
             }
 
         } else if (ctrlKey) {
@@ -343,7 +348,6 @@ class ImgNote {
         //         console.log(code)
         //     } else if(code==="ArrowDown"){
         //         console.log(code)
-
         //     }
         // }
 
@@ -543,7 +547,7 @@ class ImgNote {
                 close: true,
                 confirm: true,
                 dom: this.dom.loading.container,
-                messageText: "Import Dataset",
+                messageText: "ImgNot - Import Dataset",
                 closeEventListener: reject
             });
             // ----
@@ -739,7 +743,7 @@ class ImgNote {
         this.displayFullScreenMessage({
             close: true,
             style: "code",
-            messageText: "Dataset",
+            messageText: "<b>ImgNote</b> - Dataset",
             code: JSON.stringify(this.data, null, "\t")
         });
     }
@@ -831,7 +835,91 @@ class ImgNote {
 
     // ---
     displayHelp(){
-       
+        const shortcuts = [
+            {
+                category: "Edit",
+                windows: [
+                    { action: "Add new note point", shortcut: "a + <img src='css/icon/mouse.arrow.png'>" },
+                    { action: "Drag note point", shortcut: "d + <img src='css/icon/mouse.arrow.png'>" },
+                    { action: "Delete selected note", shortcut: "Ctrl + ⌫" },
+                    { action: "Increase size", shortcut: "Alt + ↑" },
+                    { action: "Decrease size", shortcut: "Alt + ↓" },
+                    { action: "Show/Rename title", shortcut: "⌥ + t" }
+                ],
+                macOS: [
+                    { action: "Add new note point", shortcut: "a + <img src='css/icon/mouse.arrow.png' height='22pt'>" },
+                    { action: "Drag note point", shortcut: "d + <img src='css/icon/mouse.arrow.png' height='22pt'>" },
+                    { action: "Delete selected note", shortcut: "⌘ + ⌫" },
+                    { action: "Increase size", shortcut: "⌥ + ↑" },
+                    { action: "Decrease size", shortcut: "⌥ + ↓" },
+                    { action: "Show/Rename title", shortcut: "⌥ + t" }
+                ]
+            },
+            {
+                category: "File",
+                windows: [
+                    { action: "Load new data", shortcut: "Ctrl + i" },
+                    { action: "Export", shortcut: "Ctrl + e" },
+                    { action: "Download", shortcut: "Ctrl + d" },
+                    { action: "Save", shortcut: "Ctrl + s" }
+                ],
+                macOS: [
+                    { action: "Load new data", shortcut: "⌘ + i" },
+                    { action: "Export", shortcut: "⌘ + e" },
+                    { action: "Download", shortcut: "⌘ + d" },
+                    { action: "Save", shortcut: "⌘ + s" }
+                ]
+            },
+            {
+                category: "View",
+                windows: [
+                    { action: "image : center", shortcut: "Alt + 0" },
+                    { action: "image : left", shortcut: "Alt + 1" },
+                    { action: "image : top", shortcut: "Alt + 2" },
+                    { action: "image : right", shortcut: "Alt + 3" },
+                    { action: "image : bottom", shortcut: "Alt + 4" }
+                ],
+                macOS: [
+                    { action: "image : center", shortcut: "⌥ + 0" },
+                    { action: "image : left", shortcut: "⌥ + 1" },
+                    { action: "image : top", shortcut: "⌥ + 2" },
+                    { action: "image : right", shortcut: "⌥ + 3" },
+                    { action: "image : bottom", shortcut: "⌥ + 4" }
+                ]
+            }
+        ];
+        const parseShortcutIcon = (text)=>{
+            console.log(text.split("+").map(t=>`<i>${t}</i>`))
+            return text.trim().split("+").map(t=>`<i>${t.trim()}</i>`).join("+");
+        }
+        const createShortcutHTML = (shortcut)=> {
+            const shortcuts = this.isMac ? shortcut.macOS : shortcut.windows;
+            return `
+                <table>
+                    <tr>
+                        <th class="action">${shortcut.category}</th>
+                        <th class="icon">Shortcut</th>
+                    </tr>
+                    ${shortcuts.map(item => `
+                        <tr>
+                            <td class="action">${item.action}</td>
+                            <td class="icon">${parseShortcutIcon(item.shortcut)}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `};
+
+        const shortcutsHTML = shortcuts.map(createShortcutHTML).join('');
+        this.dom.help = this.createAndAppendElement(null, "div", {
+            class: "imgnote-help",
+            innerHTML: shortcutsHTML
+        });
+
+        const messageDomItems = this.displayFullScreenMessage({
+            close: true,
+            dom: this.dom.help,
+            messageText: "<b>ImgNote</b> - Help"
+        });
     }
 
     displayLocalStorage(){
@@ -939,7 +1027,7 @@ class ImgNote {
         // Create the message text
         this.dom.message.text = this.createAndAppendElement(this.dom.message.box, "div", {
             class: "imgnote-fullscreen-message-text",
-            innerText: config.messageText || ""
+            innerHTML: config.messageText || ""
         });
 
         if(config.dom){
