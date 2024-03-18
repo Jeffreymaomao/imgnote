@@ -1,29 +1,26 @@
 window.addEventListener("load", (e) => {
-    fetch('./room.json')
-        .then(function(response) {
-            return response.json();
-        })
-        .then(function(data) {
-            const main = document.querySelector("main");
-            const imgnote = new ImgNote(main, data);
-            window.imgnote = imgnote;
-            console.log(imgnote);
-        })
-        .catch(function(err) {
-            console.log(`error : ${err}`);
-        });
+    const main = document.querySelector("main");
+    const imgnote = new ImgNote(main);
+    window.imgnote = imgnote;
+    console.log(imgnote);
 });
 
 class ImgNote {
-    constructor(DOMparent, data = {}) {
+    constructor(DOMparent) {
         this.saved = true;
         this.imgURL = null;
-        this.imgBase64 = null;
-        this.data = data;
-        this.size = data.size || 4;
+        this.imgBase64 = this.createDefaultImgBase64(700,600);
+        this.data = {
+            name: 'ImgNote',
+            mode: "left",
+            size: 10,
+            notes: []
+        };
+        this.size = this.data.size || 4;
         this.fullscreenMessage = false;
         this.dom = {
-            root: DOMparent,
+            root: DOMparent||document.body,
+            loading: {},
             note: {}
         }
         this.keys = {
@@ -37,213 +34,51 @@ class ImgNote {
             id: null,
             note: null,
             dom: null
-        }
-        // this.displayLocalStorage();
+        };
+
+        // ---
+        this.initializeMainDOM();
         const storedData = this.retrieveFromLocalStorage();
         if (storedData) {
             this.data = storedData.data;
             this.imgBase64 = storedData.imgBase64;
             this.initializeMainDOM();
         } else {
-            this.initializeLoadDOM()
-                .then(()=>{
-                    this.initializeMainDOM();
-                    document.title = `ImgNote - ${this.data.name || 'Untitled'}`;
-                })
-                .catch(error => {
-                    console.error("Error initializing:", error);
-                });
+            this.loadingNewData();
         }
     }
 
-    initializeLoadDOM() {
-        return new Promise((resolve, reject) => {
-            const initializeContainer = this.createAndAppendElement(this.dom.root, 'div', {
-                class: 'imgnote-initialize-container'
+    loadingNewData(){
+        this.createLoadingDataPage()
+            .then(()=>{
+                this.saved = false;
+                this.initializeMainDOM();
+            })
+            .catch(e=>{
+                console.log("Cancel to import a new Data.");
             });
-            this.dom.initializeContainer = initializeContainer;
-
-            // 左側照片輸入區域
-            const imgContainer = this.createAndAppendElement(initializeContainer, 'div', {
-                class: 'imgnote-initialize-img-container'
-            });
-
-            // 圖片拖放區域
-            const imgDropArea = this.createAndAppendElement(imgContainer, 'div', {
-                class: 'imgnote-initialize-img-input'
-            });
-
-            const imgText = this.createAndAppendElement(imgDropArea, 'div', {
-                class: 'imgnote-initialize-img-text',
-                textContent: 'Drop an image here or click to select'
-            });
-
-            const imgPreview = this.createAndAppendElement(imgDropArea, 'img', {
-                class: 'imgnote-initialize-img-preview'
-            });
-
-            // 圖片輸入
-            const imgInput = this.createAndAppendElement(imgDropArea, 'input', {
-                type: 'file',
-                accept: 'image/*',
-                style: 'display: none;'
-            });
-
-            // 點擊選擇圖片的標籤觸發文件輸入
-            imgDropArea.addEventListener('click', () => {
-                imgInput.click();
-            });
-            imgDropArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                imgDropArea.classList.add("dragover")
-            });
-            imgDropArea.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                imgDropArea.classList.remove("dragover")
-            });
-
-            // ---
-
-            // 右側數據輸入區域
-            const dataContainer = this.createAndAppendElement(initializeContainer, 'div', {
-                class: 'imgnote-initialize-data-container'
-            });
-
-            // 文字輸入框
-            const dataTextArea = this.createAndAppendElement(dataContainer, 'textarea', {
-                class: 'imgnote-initialize-data-text',
-                placeholder: 'Enter JSON data here...'
-            });
-
-            const dataInput = this.createAndAppendElement(dataContainer, 'input', {
-                id: 'dataInput',
-                type: 'file',
-                accept: '.json',
-                style: 'display: none;' // Hide the input element
-            });
-
-            const dataOpenFileButton = this.createAndAppendElement(dataContainer, "button", {
-                class: 'imgnote-initialize-data-open-file',
-            });
-
-            dataOpenFileButton.addEventListener("click",(e)=>{
-                dataInput.click();
-            });
-            dataTextArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dataTextArea.classList.add("dragover");
-            });
-            dataTextArea.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                dataTextArea.classList.remove("dragover");
-            });
-
-            // ---
-
-            // Create two promises for imgInput and dataInput changes
-            const imgInputPromise = new Promise((resolveImgInput) => {
-                imgDropArea.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    imgDropArea.classList.remove("dragover")
-                    const file = e.dataTransfer.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            const base64 = event.target.result;
-                            this.imgBase64 = base64;
-                            imgPreview.src = base64;
-                            imgPreview.alt = file.name;
-                            imgPreview.addEventListener("load",(e)=>{
-                                resolveImgInput();
-                                imgPreview.classList.add("loaded");
-                                imgPreview.classList.remove("failed");
-                            });
-                            imgPreview.addEventListener("error",(e)=>{
-                                imgPreview.classList.add("failed");
-                                imgPreview.classList.remove("loaded");
-                            });
-                        }
-                        reader.readAsDataURL(file); // 開始讀取文件
-                    }
-                });
-
-                imgInput.addEventListener('change', (e) => {
-                    e.preventDefault();
-                    const file = e.target.files[0];
-                    imgInput.classList.remove("dragover")
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => { // 使用事件對象 event
-                            const base64 = event.target.result;
-                            this.imgBase64 = base64;
-                            imgPreview.src = base64;
-                            imgPreview.alt = file.name; // 設置圖片的 alt 屬性為文件名
-                            resolveImgInput();
-                            imgPreview.classList.add("loaded");
-                        };
-                        reader.readAsDataURL(file); // 開始讀取文件
-                    }
-                });
-            });
-
-            const dataInputPromise = new Promise((resolveDataInput) => {
-                dataTextArea.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    dataTextArea.classList.remove("dragover");
-                    const file = e.dataTransfer.files[0];
-                    console.log(file.name)
-                    if (file&&file.name.endsWith(".json")) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            try {
-                                const data = JSON.parse(event.target.result); 
-                                this.data = data;
-                                dataTextArea.innerHTML = JSON.stringify(data,null,4);
-                                resolveDataInput(); // Resolve when data input changes
-                            } catch (error) {
-                                console.error("Error parsing JSON:", error);
-                            }
-                        };
-                        reader.readAsText(file);
-                    }
-                });
-                dataInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            try {
-                                const data = JSON.parse(event.target.result); 
-                                this.data = data;
-                                dataTextArea.innerHTML = JSON.stringify(data,null,4);
-                                resolveDataInput(); // Resolve when data input changes
-                            } catch (error) {
-                                console.error("Error parsing JSON:", error);
-                            }
-                        };
-                        reader.readAsText(file);
-                    }
-                });
-            });
-
-            // Resolve the main promise when both input promises are resolved
-            Promise.all([imgInputPromise, dataInputPromise]).then(() => {
-                resolve();
-            });
-        });
     }
 
-
     save(){
-        const id = this.md5(JSON.stringify(this.data));
         const saveTime = new Date();
         const data = this.data;
-        const img = this.img2base64();
-        console.log(JSON.stringify(this.data))
+        const imgBase64 = this.imgBase64;
+        // ---
+        const dataSet = {
+            saveTime: saveTime,
+            data: data,
+            imgBase64: imgBase64
+        }
+        const hash = this.md5(JSON.stringify(this.data)+imgBase64); 
+        const id = `imgnote-${hash}`
+        localStorage.setItem(id, JSON.stringify(dataSet));
+        this.saved = true;
     }
 
     initializeMainDOM() {
-        if(this.dom.initializeContainer) this.dom.initializeContainer.remove();
+        if(this.dom.container){
+            this.dom.container.remove();
+        }
         
         this.dom.root.classList.add("imgnote-app");
 
@@ -258,6 +93,17 @@ class ImgNote {
         this.dom.noteContainer = this.createAndAppendElement(this.dom.container, "div", {
             class: "imgnote-note-container none"
         });
+
+        this.dom.title = this.createAndAppendElement(this.dom.container, "div", {
+            class: "imgnote-main-title show"
+        });
+
+        this.dom.titleInput = this.createAndAppendElement(this.dom.title, "input", {
+            class: "imgnote-main-title-input",
+            value: this.data.name
+        });
+        this.dom.titleInput.setAttribute('size', this.data.name.length + 2);
+
 
         this.dom.imgContainer = this.createAndAppendElement(this.dom.container, "div", {
             class: "imgnote-img-container center"
@@ -279,6 +125,7 @@ class ImgNote {
         this.dom.imgContainer.addEventListener('mousedown', this.imgMousedownEventListener.bind(this));
         this.dom.imgContainer.addEventListener('mousemove', this.imgMousemoveEventListener.bind(this));
         this.dom.img.addEventListener('dragstart', (e) => { e.preventDefault(); });
+        this.dom.titleInput.addEventListener('input', this.titleInputEventListener.bind(this));
 
         window.addEventListener('resize', this.plotImgNote.bind(this));
         window.addEventListener('keydown', this.winowKeydownEventListener.bind(this));
@@ -286,6 +133,7 @@ class ImgNote {
         window.addEventListener('mousedown', this.windowMousedownEventListener.bind(this));
         window.addEventListener('mouseup', this.windowMouseupEventListener.bind(this));
         window.addEventListener('beforeunload', this.windowBeforeUnloadEventListener.bind(this));
+        this.titleShowTemporary();
     }
 
     // ---
@@ -432,7 +280,6 @@ class ImgNote {
             key: key,
             code: code
         };
-        // console.log(this.keys);
 
         if (altKey) {
             if (code === 'Digit0') {
@@ -456,16 +303,29 @@ class ImgNote {
             }  else if (code === 'ArrowDown'){
                 this.decreaseSize();
                 this.saved = false;
+            } else if (code === 'KeyT') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toogleTitle();
             }
+
         } else if (ctrlKey) {
             if (code === 'KeyE') {
                 e.preventDefault();
                 e.stopPropagation();
                 this.export();
+            } else if (code === 'KeyI') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.loadingNewData();
             } else if (code === 'KeyD') {
                 e.preventDefault();
                 e.stopPropagation();
                 this.download();
+            } else if (code === 'KeyS') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.save();
             } else if (code === 'Backspace') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -550,6 +410,20 @@ class ImgNote {
         });
     }
 
+    titleInputEventListener(){
+        const textLength = this.dom.titleInput.value.length;
+        this.dom.titleInput.setAttribute('size', textLength + 2);
+        this.data.name = this.dom.titleInput.value;
+        this.saved = false;
+    }
+
+    titleShowTemporary(){
+        if(!this.dom.title.classList.contains("show")) this.dom.title.classList.add("show");
+        window.setTimeout(()=>{
+            this.dom.title.classList.remove("show");
+        }, 2000);
+    }
+
     // ---
     deleteSelectedNote(){
         const { note, id, dom } = this.selected;
@@ -570,14 +444,227 @@ class ImgNote {
                 this.selected.note = null;
                 this.selected.dom = null;
                 Object.values(this.dom.note).forEach(item=>{item.remove()});
+                this.closeFullScreenMessage();
             },
             cancelEventListener: ()=>{
                 console.log("Delete cancel!")
+                this.closeFullScreenMessage();
             }
         });
     }
 
     // ---
+    toogleTitle(){
+        this.dom.title.classList.toggle("show");
+    }
+
+
+    createLoadingDataPage() {
+        this.dom.loading.container = this.createAndAppendElement(null, 'div', {
+            class: 'imgnote-loading-container'
+        });
+        this.dom.loading.imgContainer = this.createAndAppendElement(this.dom.loading.container, 'div', {
+            class: 'imgnote-loading-img-container'
+        });
+
+        // 圖片拖放區域
+        this.dom.loading.imgDropArea = this.createAndAppendElement(this.dom.loading.imgContainer, 'div', {
+            class: 'imgnote-loading-img-input'
+        });
+
+        this.dom.loading.imgText = this.createAndAppendElement(this.dom.loading.imgDropArea, 'div', {
+            class: 'imgnote-loading-img-text',
+            textContent: 'Drop an image here or click to select'
+        });
+
+        this.dom.loading.imgPreview = this.createAndAppendElement(this.dom.loading.imgDropArea, 'img', {
+            class: 'imgnote-loading-img-preview'
+        });
+
+        // 圖片輸入
+        this.dom.loading.imgInput = this.createAndAppendElement(this.dom.loading.imgDropArea, 'input', {
+            type: 'file',
+            accept: 'image/*',
+            style: 'display: none;'
+        });
+
+        // 點擊選擇圖片的標籤觸發文件輸入
+        this.dom.loading.imgDropArea.addEventListener('click', () => {
+            this.dom.loading.imgInput.click();
+        });
+        this.dom.loading.imgDropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            this.dom.loading.imgDropArea.classList.add("dragover")
+        });
+        this.dom.loading.imgDropArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            this.dom.loading.imgDropArea.classList.remove("dragover")
+        });
+
+        // ---
+
+        // 右側數據輸入區域
+        this.dom.loading.dataContainer = this.createAndAppendElement(this.dom.loading.container, 'div', {
+            class: 'imgnote-loading-data-container'
+        });
+
+        // 文字輸入框
+        this.dom.loading.dataTextArea = this.createAndAppendElement(this.dom.loading.dataContainer, 'textarea', {
+            class: 'imgnote-loading-data-text',
+            placeholder: 'Enter JSON data here...'
+        });
+
+        this.dom.loading.dataInput = this.createAndAppendElement(this.dom.loading.dataContainer, 'input', {
+            id: 'dataInput',
+            type: 'file',
+            accept: '.json',
+            style: 'display: none;' // Hide the input element
+        });
+
+        this.dom.loading.dataOpenFileButton = this.createAndAppendElement(this.dom.loading.dataContainer, "button", {
+            class: 'imgnote-loading-data-open-file',
+        });
+
+        this.dom.loading.dataOpenFileButton.addEventListener("click",(e)=>{
+            this.dom.loading.dataInput.click();
+        });
+        this.dom.loading.dataTextArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            this.dom.loading.dataTextArea.classList.add("dragover");
+        });
+        this.dom.loading.dataTextArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            this.dom.loading.dataTextArea.classList.remove("dragover");
+        });
+
+        // ---
+        return new Promise((resolve,reject)=>{
+            const messageDomItems = this.displayFullScreenMessage({
+                close: true,
+                confirm: true,
+                dom: this.dom.loading.container,
+                messageText: "Import Dataset",
+                closeEventListener: reject
+            });
+            // ----
+            if(messageDomItems.confirmButton) messageDomItems.confirmButton.classList.add("not-valid");
+            let textInputValid = false;
+            let imgInputValid = false;
+            const checkIsBothImgAndTextAreValid = ()=>{
+                if(!messageDomItems.confirmButton) return;
+                if(textInputValid&&imgInputValid){
+                    messageDomItems.confirmButton.classList.add("valid");
+                    messageDomItems.confirmButton.classList.remove("not-valid");
+                    return true;
+                }else{
+                    messageDomItems.confirmButton.classList.add("not-valid");
+                    messageDomItems.confirmButton.classList.remove("valid");
+                    return false;
+                }
+            }
+
+            messageDomItems.confirmButton.addEventListener("click",()=>{
+                 if(checkIsBothImgAndTextAreValid()){
+                    resolve();
+                    this.closeFullScreenMessage();
+                 } else {
+                    console.log("Not valid")
+                 }
+            });
+            // ---
+            // chack valid of image 
+            this.dom.loading.imgPreview.addEventListener("load",(e)=>{
+                this.dom.loading.imgDropArea.classList.add("loaded");
+                this.dom.loading.imgPreview.classList.add("loaded");
+                this.dom.loading.imgPreview.classList.remove("failed");
+                imgInputValid = true;
+                checkIsBothImgAndTextAreValid();
+            });
+            this.dom.loading.imgPreview.addEventListener("error",(e)=>{
+                this.dom.loading.imgDropArea.classList.remove("loaded");
+                this.dom.loading.imgPreview.classList.add("failed");
+                this.dom.loading.imgPreview.classList.remove("loaded");
+                imgInputValid = false;
+            });
+            this.dom.loading.imgDropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                this.dom.loading.imgDropArea.classList.remove("dragover")
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const base64 = event.target.result;
+                        this.imgBase64 = base64;
+                        this.dom.loading.imgPreview.src = base64;
+                        this.dom.loading.imgPreview.alt = file.name;
+                    }
+                    reader.readAsDataURL(file); // 開始讀取文件
+                }
+            });
+            this.dom.loading.imgInput.addEventListener('change', (e) => {
+                e.preventDefault();
+                const file = e.target.files[0];
+                this.dom.loading.imgInput.classList.remove("dragover")
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => { // 使用事件對象 event
+                        const base64 = event.target.result;
+                        this.imgBase64 = base64;
+                        this.dom.loading.imgPreview.src = base64;
+                        this.dom.loading.imgPreview.alt = file.name; // 設置圖片的 alt 屬性為文件名
+                        this.dom.loading.imgPreview.classList.add("loaded");
+                    };
+                    reader.readAsDataURL(file); // 開始讀取文件
+                }
+            });
+
+            // chack valid of text 
+            const checkValidOfTextInput = ()=>{
+                if(this.isString2DataValid(this.dom.loading.dataTextArea.value)){
+                    this.dom.loading.dataTextArea.classList.add("valid");
+                    textInputValid = true;
+                    this.data = JSON.parse(this.dom.loading.dataTextArea.value);
+                    checkIsBothImgAndTextAreValid();
+                } else {
+                    this.dom.loading.dataTextArea.classList.remove("valid");
+                    textInputValid = false;
+                }
+            }
+            this.dom.loading.dataTextArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                this.dom.loading.dataTextArea.classList.remove("dragover");
+                const file = e.dataTransfer.files[0];
+                if (file&&file.name.endsWith(".json")) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            this.dom.loading.dataTextArea.value = event.target.result;
+                            checkValidOfTextInput();
+                        } catch (error) {
+                            console.error("Error parsing JSON:", error);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            });
+            this.dom.loading.dataInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file&&file.name.endsWith(".json")) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            this.dom.loading.dataTextArea.value = event.target.result;
+                            checkValidOfTextInput();
+                        } catch (error) {
+                            console.error("Error parsing JSON:", error);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            });
+            this.dom.loading.dataTextArea.addEventListener('input', checkValidOfTextInput);
+        })
+    }
 
     plotImgNote() {
         this.dom.notes.forEach(noteDOM => {
@@ -718,23 +805,34 @@ class ImgNote {
         // other attributes
         Object.keys(attributes).forEach(key => element[key] = attributes[key]);
 
-        parent.appendChild(element);
+        if(parent) parent.appendChild(element);
         return element;
     }
 
     retrieveFromLocalStorage() {
         // Retrieve data from localStorage based on id
         const keys = Object.keys(localStorage);
+        let latestDataset = null;
+        let latestSaveTime = 0;
+
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             if (key.startsWith("imgnote-")) {
-                return JSON.parse(localStorage.getItem(key));
+                const dataset = JSON.parse(localStorage.getItem(key));
+                if (dataset && new Date(dataset.saveTime) > latestSaveTime) {
+                    latestDataset = dataset;
+                    latestSaveTime = new Date(dataset.saveTime);
+                }
             }
         }
-        return null;
+
+        return latestDataset;
     }
 
     // ---
+    displayHelp(){
+       
+    }
 
     displayLocalStorage(){
         const keys = Object.keys(localStorage);
@@ -844,6 +942,10 @@ class ImgNote {
             innerText: config.messageText || ""
         });
 
+        if(config.dom){
+            this.dom.message.box.appendChild(config.dom);
+        }
+
         if(config.code){
             this.dom.message.codeContainer = this.createAndAppendElement(this.dom.message.box, "div", {
                 class: "imgnote-fullscreen-message-code-container"
@@ -924,18 +1026,10 @@ class ImgNote {
 
         // Event listeners for buttons
         if (config.confirm) {
-            this.dom.message.confirmButton.addEventListener("click", () => {
-                // Handle confirm button click
-                this.closeFullScreenMessage();
-                if (config.confirmEventListener) config.confirmEventListener();
-            });
+            this.dom.message.confirmButton.addEventListener("click", config.confirmEventListener);
         }
         if (config.cancel) {
-            this.dom.message.cancelButton.addEventListener("click", () => {
-                // Handle cancel button click
-                this.closeFullScreenMessage();
-                if (config.cancelEventListener) config.cancelEventListener();
-            });
+            this.dom.message.cancelButton.addEventListener("click", config.cancelEventListener);
         }
         if(config.close){
             this.dom.message.closeButton.addEventListener("click", () => {
@@ -945,6 +1039,7 @@ class ImgNote {
             });
         }
         this.fullscreenMessage = true;
+        return this.dom.message;
     }
 
     closeFullScreenMessage() {
@@ -960,16 +1055,59 @@ class ImgNote {
     }
 
     // ---
+
+    isString2DataValid(data){
+        try {
+            const json = JSON.parse(data);
+            if(json.name===undefined) return false;
+            if(json.mode===undefined) return false;
+            if(json.size===undefined) return false;
+            if(json.notes===undefined) return false;
+            if(!Array.isArray(json.notes)) return false;
+        } catch (e) {
+            return false;
+        }
+        return true;
+    }
+
+    createDefaultImgBase64(width, height){
+        const gridSize = 25;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "rgb(255,255,255)";
+        ctx.strokeStyle = "rgb(0,0,0)";
+        ctx.fillRect(0, 0, width, height);
+        for (let x = 0; x < width; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.closePath();
+            ctx.stroke();
+        }
+        for (let y = 0; y < height; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.closePath();
+            ctx.stroke();
+        }
+        const base64Data = canvas.toDataURL('image/jpeg');
+        return base64Data;
+    }
+
     img2base64(imageUrl, callback) {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.onload = function() {
-            var canvas = document.createElement('canvas');
+            const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
-            var ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
-            var base64Data = canvas.toDataURL('image/jpeg'); // 可根据需要修改格式
+            const base64Data = canvas.toDataURL('image/jpeg');
             callback(base64Data);
         };
         img.src = imageUrl;
