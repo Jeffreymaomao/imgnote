@@ -1,5 +1,9 @@
 # ImgNote 
 
+- web app: [https://jeffreymaomao.github.io/imgnote.github.io/](https://jeffreymaomao.github.io/imgnote.github.io/)
+
+- Author: Chang-Mao Yang
+
 
 
 
@@ -35,3 +39,9 @@
 ## Need Improve
 
 - Point shape (ex: computer, table, printer,...) 
+
+
+
+## License
+
+**ImgNote** is released under the MIT license. For more information, see the [LICENSE](LICENSE) file.
