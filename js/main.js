@@ -265,7 +265,8 @@ class ImgNote {
     imgMousedownEventListener(e) {
         if (this.keys.code === 'KeyA') {
             // add a new point
-            const id = Number(`${Math.floor(Math.random()*1E7)}`.replace(".", ""));
+            const name = Number(`${Math.floor(Math.random()*1E8)}`.replace(".", ""));
+            const id = this.parseIdBy(name);
             const mouse = this.getPositionInImgContainer(e);
             const imgContainerRect = this.dom.imgContainer.getBoundingClientRect();
             const imgContainerLeft = imgContainerRect.left;
@@ -310,7 +311,7 @@ class ImgNote {
             if (this.dom.note) {
                 this.dom.note.valueId.innerText = this.selected.note.id;
                 if (this.selected.note.text) {
-                    this.dom.note.text.value = this.selected.note.note;
+                    this.dom.note.text.value = this.selected.note.text;
                 }
             }
             if (this.keys.code !== 'KeyD') return;
@@ -318,6 +319,7 @@ class ImgNote {
             this.selected.note.x = notePosition.x;
             this.selected.note.y = notePosition.y;
             if (this.dom.note) {
+                this.dom.note.text.value = this.selected.note.text;
                 this.dom.note.valueX.innerText = this.selected.note.x;
                 this.dom.note.valueY.innerText = this.selected.note.y;
             }
@@ -1044,9 +1046,13 @@ class ImgNote {
         });
 
         this.dom.note.valueId.addEventListener("input", (e) => {
+            const inputId = this.dom.note.valueId.value;
+            const parseID = this.parseIdBy(inputId);
+            this.dom.note.valueId.value = parseID;
+
             this.saved = false;
-            this.selected.dom.id = this.dom.note.valueId.value;
-            this.selected.note.id = this.dom.note.valueId.value;
+            this.selected.dom.id = parseID;
+            this.selected.note.id = parseID;
         });
 
         this.dom.note.text.addEventListener("input", (e) => {
@@ -1210,6 +1216,22 @@ class ImgNote {
     }
 
     // ---
+    parseIdBy(name){
+        let id = `${name}`;
+        this.data.notes.map(e=>e.id).forEach(otherId=>{
+            if(otherId.includes(`${name}`)){
+                const splitName = otherId.split("|");
+                const n = splitName[1];
+                if(!n){
+                    id = `${name}|1`;
+                }else{
+                    const num = Number(n);
+                    id = `${splitName[0]}|${num+1}`
+                }
+            }
+        });
+        return id;
+    }
 
     isString2DataValid(data){
         try {

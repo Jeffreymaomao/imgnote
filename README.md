@@ -12,8 +12,8 @@
 ### Edit
 | Action               | Windows                                                  | macOS                                                    |
 | -------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
-| Add new note point   | a + <img src="css/icon/mouse.pointer.png" height="22pt"> | a + <img src="css/icon/mouse.pointer.png" height="22pt"> |
-| Drag note point      | d + <img src="css/icon/mouse.pointer.png" height="22pt"> | d + <img src="css/icon/mouse.pointer.png" height="22pt"> |
+| Add new note point   | a + <img src="css/icon/mouse.arrow.png" height="22pt"> | a + <img src="css/icon/mouse.arrow.png" height="22pt"> |
+| Drag note point      | d + <img src="css/icon/mouse.arrow.png" height="22pt"> | d + <img src="css/icon/mouse.arrow.png" height="22pt"> |
 | Increase size        | Alt + ↑                                                  | ⌥ + ↑                                                    |
 | Decrease size        | Alt + ↓                                                  | ⌥ + ↓                                                    |
 | Delete selected note | Ctrl + ⌫                                                 | ⌘ + ⌫                                                    |
