@@ -23,6 +23,7 @@ class ImgNote {
         this.fullscreenMessage = false;
         this.dom = {
             root: DOMparent||document.body,
+            info: {},
             loading: {},
             find: {},
             notes: [],
@@ -187,6 +188,7 @@ class ImgNote {
             class: "imgnote-img center",
             alt: "main Image"
         });
+        this.displayImgNoteInformation();
         this.initializeDomEventListener();
         this.titleShowTemporary();
     }
@@ -624,7 +626,7 @@ class ImgNote {
                 close: true,
                 confirm: true,
                 dom: this.dom.loading.container,
-                messageText: "ImgNot - Import Dataset",
+                messageText: "<img src='css/icon/imgnote.png' class='logo-icon'><b>ImgNote</b> - Import Dataset",
                 closeEventListener: reject
             });
             // ----
@@ -820,7 +822,7 @@ class ImgNote {
         this.displayFullScreenMessage({
             close: true,
             style: "code",
-            messageText: "<b>ImgNote</b> - Dataset",
+            messageText: "<img src='css/icon/imgnote.png' class='logo-icon'><b>ImgNote</b> - Dataset",
             code: JSON.stringify(this.data, null, "\t")
         });
     }
@@ -994,7 +996,7 @@ class ImgNote {
         const messageDomItems = this.displayFullScreenMessage({
             close: true,
             dom: this.dom.help.container,
-            messageText: "<b>ImgNote</b> - Help"
+            messageText: "<img src='css/icon/imgnote.png' class='logo-icon'><b>ImgNote</b> - Help"
         });
     }
 
@@ -1067,6 +1069,21 @@ class ImgNote {
             this.selected.note.text = this.dom.note.text.value;
             if (!this.selected.note.text) this.selected.note.text = undefined;
         });
+    }
+
+    displayImgNoteInformation(){
+        if(this.dom.info.container) this.dom.info.container.remove();
+
+        this.dom.info = {};
+        this.dom.info.container = this.createAndAppendElement(this.dom.root, "div", {
+            class: "imgnote-app-information-container"
+        });
+        this.dom.info.questionMark = this.createAndAppendElement(this.dom.info.container, "div", {
+            class: "imgnote-app-information-questionmark"
+        });
+        this.dom.info.questionMark.addEventListener("click",(e)=>{
+            this.displayHelp();
+        })
     }
 
     displayFullScreenMessage(config = {}) {

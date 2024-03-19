@@ -23,6 +23,47 @@ body {
 	width: 100%;
 	height: 100%;
 }
+
+img.logo-icon {
+	height: 20pt;
+	margin: 0 2px;
+	vertical-align: bottom;
+}
+
+.imgnote-app-information-container {
+	position: fixed;
+	right: 10px;
+	bottom: 10px;
+	width: 30px;
+	height: 30px;
+	cursor: pointer;
+}
+
+
+
+.imgnote-app-information-questionmark {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%) scale(1.0);
+	background: url("icon/questionmark.svg");
+	background-repeat: no-repeat;
+	background-position: center;
+	width: 26px;
+	height: 26px;
+	opacity: 0.2;
+	transition: all 0.3s ease;
+}
+
+.imgnote-app-information-questionmark:hover {
+	transform: translate(-50%, -50%) scale(1.1);
+	opacity: 1.0;
+}
+
+.imgnote-app-information-questionmark:active {
+	transform: translate(-50%, -50%) scale(0.9);
+}
+
 /* ------------------------------------ */
 .imgnote-help {
     max-height: 80vh;
@@ -585,7 +626,6 @@ label.imgnote-note-value {
 }
 
 .imgnote-fullscreen-message-text {
-    width: 100%;
     padding: 15px;
     font-size: 18px;
 
