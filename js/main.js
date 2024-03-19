@@ -8,10 +8,11 @@ window.addEventListener("load", (e) => {
 class ImgNote {
     constructor(DOMparent) {
         this.isMac = navigator.platform.toLowerCase().indexOf('mac')>=0;
+        this.hashId = null;
         this.saved = true;
         this.imgURL = null;
         this.windowEventListener = null;
-        this.imgBase64 = this.createDefaultImgBase64(700,600);
+        this.imgBase64 = this.createDefaultImgBase64(5000,3000,{grid:200,lineWidth:4});
         this.data = {
             name: 'ImgNote',
             mode: "left",
@@ -118,6 +119,7 @@ class ImgNote {
         this.createLoadingDataPage()
             .then(()=>{
                 this.saved = false;
+                this.hashId = null;
                 this.initializeMainDOM();
             })
             .catch(e=>{
@@ -136,14 +138,17 @@ class ImgNote {
             imgBase64: imgBase64
         }
         const hash = this.md5(JSON.stringify(this.data)+imgBase64); 
-        const id = `imgnote-${hash}`
+        const id = `imgnote-${hash}`;
+        if(this.hashId) localStorage.removeItem(this.hashId);
         localStorage.setItem(id, JSON.stringify(dataSet));
         this.saved = true;
+        this.hashId = id;
     }
 
     initializeMainDOM() {
         if(this.dom.container) this.dom.container.remove();
         this.dom.notes = [];
+        this.size = this.data.size;
         this.dom.note = {}
         
         this.dom.root.classList.add("imgnote-app");
@@ -889,6 +894,7 @@ class ImgNote {
         // Retrieve data from localStorage based on id
         const keys = Object.keys(localStorage);
         let latestDataset = null;
+        let hash = null;
         let latestSaveTime = 0;
 
         for (let i = 0; i < keys.length; i++) {
@@ -898,10 +904,11 @@ class ImgNote {
                 if (dataset && new Date(dataset.saveTime) > latestSaveTime) {
                     latestDataset = dataset;
                     latestSaveTime = new Date(dataset.saveTime);
+                    hash = key;
                 }
             }
         }
-
+        if(hash) this.hashId = hash;
         return latestDataset;
     }
 
@@ -1247,13 +1254,13 @@ class ImgNote {
         return true;
     }
 
-    createDefaultImgBase64(width, height){
-        const gridSize = 25;
+    createDefaultImgBase64(width, height, config={}){
+        const gridSize = config.grid||25;
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        ctx.lineWidth = 1;
+        ctx.lineWidth =  config.lineWidth||1;
         ctx.fillStyle = "rgb(255,255,255)";
         ctx.strokeStyle = "rgb(0,0,0)";
         ctx.fillRect(0, 0, width, height);
