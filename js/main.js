@@ -10,6 +10,7 @@ class ImgNote {
         this.isMac = navigator.platform.toLowerCase().indexOf('mac')>=0;
         this.saved = true;
         this.imgURL = null;
+        this.windowEventListener = null;
         this.imgBase64 = this.createDefaultImgBase64(700,600);
         this.data = {
             name: 'ImgNote',
@@ -22,6 +23,8 @@ class ImgNote {
         this.dom = {
             root: DOMparent||document.body,
             loading: {},
+            find: {},
+            notes: [],
             note: {}
         }
         this.keys = {
@@ -36,9 +39,71 @@ class ImgNote {
             note: null,
             dom: null
         };
+        this.help = {
+            abstract: "ImgNote lets you add and manage note points on images with ease. Hold <i>a</i> and click <i><img src='css/icon/mouse.arrow.png' height='22pt'></i> to add a point, or press <i>Alt</i>/<i>⌥</i> + <i>h</i> for help.",
+            shortcuts: [
+                {
+                    category: "Edit",
+                    windows: [
+                        { action: "Add new note point", shortcut: "a + <img src='css/icon/mouse.arrow.png'>" },
+                        { action: "Drag note point", shortcut: "d + <img src='css/icon/mouse.arrow.png'>" },
+                        { action: "Delete selected note", shortcut: "Ctrl + ⌫" },
+                        { action: "Increase size", shortcut: "Alt + ↑" },
+                        { action: "Decrease size", shortcut: "Alt + ↓" },
+                        { action: "Show/Rename title", shortcut: "Alt + t" },
+                        { action: "Search mote by ID", shortcut: "Alt + f" },
+                        { action: "Open this help", shortcut: "Alt + h" }
+                    ],
+                    macOS: [
+                        { action: "Add new note point", shortcut: "a + <img src='css/icon/mouse.arrow.png' height='22pt'>" },
+                        { action: "Drag note point", shortcut: "d + <img src='css/icon/mouse.arrow.png' height='22pt'>" },
+                        { action: "Delete selected note", shortcut: "⌘ + ⌫" },
+                        { action: "Increase size", shortcut: "⌥ + ↑" },
+                        { action: "Decrease size", shortcut: "⌥ + ↓" },
+                        { action: "Show/Rename title", shortcut: "⌥ + t" },
+                        { action: "Search note by ID", shortcut: "⌥ + f" },
+                        { action: "Open this help", shortcut: "⌥ + h" },
+                    ]
+                },
+                {
+                    category: "File",
+                    windows: [
+                        { action: "Load new data", shortcut: "Ctrl + i" },
+                        { action: "Export", shortcut: "Ctrl + e" },
+                        { action: "Download", shortcut: "Ctrl + d" },
+                        { action: "Save", shortcut: "Ctrl + s" }
+                    ],
+                    macOS: [
+                        { action: "Load new data", shortcut: "⌘ + i" },
+                        { action: "Export", shortcut: "⌘ + e" },
+                        { action: "Download", shortcut: "⌘ + d" },
+                        { action: "Save", shortcut: "⌘ + s" }
+                    ]
+                },
+                {
+                    category: "View",
+                    windows: [
+                        { action: "image : center", shortcut: "Alt + 0" },
+                        { action: "image : left", shortcut: "Alt + 1" },
+                        { action: "image : top", shortcut: "Alt + 2" },
+                        { action: "image : right", shortcut: "Alt + 3" },
+                        { action: "image : bottom", shortcut: "Alt + 4" }
+                    ],
+                    macOS: [
+                        { action: "image : center", shortcut: "⌥ + 0" },
+                        { action: "image : left", shortcut: "⌥ + 1" },
+                        { action: "image : top", shortcut: "⌥ + 2" },
+                        { action: "image : right", shortcut: "⌥ + 3" },
+                        { action: "image : bottom", shortcut: "⌥ + 4" }
+                    ]
+                }
+            ]
+        };
 
         // ---
         this.initializeMainDOM();
+        this.initializeWindowEventListener();
+        // ---
         const storedData = this.retrieveFromLocalStorage();
         if (storedData) {
             this.data = storedData.data;
@@ -46,7 +111,6 @@ class ImgNote {
             this.initializeMainDOM();
         } else {
             this.displayHelp()
-            // this.loadingNewData();
         }
     }
 
@@ -78,24 +142,16 @@ class ImgNote {
     }
 
     initializeMainDOM() {
-        if(this.dom.container){
-            this.dom.container.remove();
-        }
+        if(this.dom.container) this.dom.container.remove();
+        this.dom.notes = [];
+        this.dom.note = {}
         
         this.dom.root.classList.add("imgnote-app");
 
         this.dom.container = this.createAndAppendElement(this.dom.root, "div", {
             class: "imgnote-container center"
         });
-
-        this.dom.infoContainer = this.createAndAppendElement(this.dom.container, "div", {
-            class: "imgnote-info-container center"
-        });
-
-        this.dom.noteContainer = this.createAndAppendElement(this.dom.container, "div", {
-            class: "imgnote-note-container none"
-        });
-
+        // --- title
         this.dom.title = this.createAndAppendElement(this.dom.container, "div", {
             class: "imgnote-main-title show"
         });
@@ -105,8 +161,17 @@ class ImgNote {
             value: this.data.name
         });
         this.dom.titleInput.setAttribute('size', this.data.name.length + 2);
+        // --- info
 
+        this.dom.infoContainer = this.createAndAppendElement(this.dom.container, "div", {
+            class: "imgnote-info-container center"
+        });
 
+        this.dom.noteContainer = this.createAndAppendElement(this.dom.container, "div", {
+            class: "imgnote-note-container none"
+        });
+
+        // --- img 
         this.dom.imgContainer = this.createAndAppendElement(this.dom.container, "div", {
             class: "imgnote-img-container center"
         });
@@ -117,25 +182,26 @@ class ImgNote {
             class: "imgnote-img center",
             alt: "main Image"
         });
-
-        this.initializeEventListener();
+        this.initializeDomEventListener();
+        this.titleShowTemporary();
     }
 
-    initializeEventListener() {
+    initializeDomEventListener() {
         this.dom.img.addEventListener('error', () => { console.error('Image failed to load'); });
         this.dom.img.addEventListener('load', this.imgLoadEventListener.bind(this));
         this.dom.imgContainer.addEventListener('mousedown', this.imgMousedownEventListener.bind(this));
         this.dom.imgContainer.addEventListener('mousemove', this.imgMousemoveEventListener.bind(this));
         this.dom.img.addEventListener('dragstart', (e) => { e.preventDefault(); });
         this.dom.titleInput.addEventListener('input', this.titleInputEventListener.bind(this));
+    }
 
+    initializeWindowEventListener() {
         window.addEventListener('resize', this.plotImgNote.bind(this));
         window.addEventListener('keydown', this.winowKeydownEventListener.bind(this));
         window.addEventListener('keyup', this.windowKeyupEventListener.bind(this));
         window.addEventListener('mousedown', this.windowMousedownEventListener.bind(this));
         window.addEventListener('mouseup', this.windowMouseupEventListener.bind(this));
         window.addEventListener('beforeunload', this.windowBeforeUnloadEventListener.bind(this));
-        this.titleShowTemporary();
     }
 
     // ---
@@ -182,8 +248,8 @@ class ImgNote {
 
     imgLoadEventListener(e) {
         // console.log('Image loaded successfully');
+        if(this.dom.notes.length>0) this.dom.notes.forEach(e=>{e.remove()});
         const promises = [];
-        this.dom.notes = [];
         this.data.notes.forEach(note => {
             const id = note.id;
             const notePositionPixel = this.getNotePosition(note.x, note.y);
@@ -312,6 +378,10 @@ class ImgNote {
                 e.preventDefault();
                 e.stopPropagation();
                 this.displayHelp();
+            } else if (code === 'KeyF') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.displayFindNote();
             }
 
         } else if (ctrlKey) {
@@ -834,62 +904,50 @@ class ImgNote {
     }
 
     // ---
+    displayFindNote(){
+        if(this.dom.find && this.dom.find.container) return;
+        
+        this.dom.find = {};
+        this.dom.find.container = this.createAndAppendElement(this.dom.root, "div", {
+            class: "imgnote-find-find",
+        });
+
+        this.dom.find.icon = this.createAndAppendElement(this.dom.find.container, "div", {
+            class: "imgnote-find-icon",
+        });
+
+        this.dom.find.input = this.createAndAppendElement(this.dom.find.container, "input", {
+            class: "imgnote-find-input",
+            placeholder: "search by ID..."
+        });
+        this.dom.find.input.focus();
+
+        this.dom.find.close = this.createAndAppendElement(this.dom.find.container, "div", {
+            class: "imgnote-find-close",
+            innerText: "×"
+        });
+
+        this.dom.find.close.addEventListener("click", (e)=>{
+            if(this.dom.find.container) this.dom.find.container.remove();
+            this.dom.find = {};
+        });
+
+        this.dom.find.input.addEventListener("input",(e)=>{
+            const searchText = this.dom.find.input.value;
+            if(searchText==="") return;
+
+            this.dom.notes.forEach(noteDOM=>{
+                noteDOM.classList.remove("selected");
+                if(noteDOM.id.includes(searchText)){
+                    noteDOM.classList.add("selected");   
+                }
+            });
+            
+        })
+    }
+
     displayHelp(){
-        const shortcuts = [
-            {
-                category: "Edit",
-                windows: [
-                    { action: "Add new note point", shortcut: "a + <img src='css/icon/mouse.arrow.png'>" },
-                    { action: "Drag note point", shortcut: "d + <img src='css/icon/mouse.arrow.png'>" },
-                    { action: "Delete selected note", shortcut: "Ctrl + ⌫" },
-                    { action: "Increase size", shortcut: "Alt + ↑" },
-                    { action: "Decrease size", shortcut: "Alt + ↓" },
-                    { action: "Show/Rename title", shortcut: "⌥ + t" }
-                ],
-                macOS: [
-                    { action: "Add new note point", shortcut: "a + <img src='css/icon/mouse.arrow.png' height='22pt'>" },
-                    { action: "Drag note point", shortcut: "d + <img src='css/icon/mouse.arrow.png' height='22pt'>" },
-                    { action: "Delete selected note", shortcut: "⌘ + ⌫" },
-                    { action: "Increase size", shortcut: "⌥ + ↑" },
-                    { action: "Decrease size", shortcut: "⌥ + ↓" },
-                    { action: "Show/Rename title", shortcut: "⌥ + t" }
-                ]
-            },
-            {
-                category: "File",
-                windows: [
-                    { action: "Load new data", shortcut: "Ctrl + i" },
-                    { action: "Export", shortcut: "Ctrl + e" },
-                    { action: "Download", shortcut: "Ctrl + d" },
-                    { action: "Save", shortcut: "Ctrl + s" }
-                ],
-                macOS: [
-                    { action: "Load new data", shortcut: "⌘ + i" },
-                    { action: "Export", shortcut: "⌘ + e" },
-                    { action: "Download", shortcut: "⌘ + d" },
-                    { action: "Save", shortcut: "⌘ + s" }
-                ]
-            },
-            {
-                category: "View",
-                windows: [
-                    { action: "image : center", shortcut: "Alt + 0" },
-                    { action: "image : left", shortcut: "Alt + 1" },
-                    { action: "image : top", shortcut: "Alt + 2" },
-                    { action: "image : right", shortcut: "Alt + 3" },
-                    { action: "image : bottom", shortcut: "Alt + 4" }
-                ],
-                macOS: [
-                    { action: "image : center", shortcut: "⌥ + 0" },
-                    { action: "image : left", shortcut: "⌥ + 1" },
-                    { action: "image : top", shortcut: "⌥ + 2" },
-                    { action: "image : right", shortcut: "⌥ + 3" },
-                    { action: "image : bottom", shortcut: "⌥ + 4" }
-                ]
-            }
-        ];
         const parseShortcutIcon = (text)=>{
-            console.log(text.split("+").map(t=>`<i>${t}</i>`))
             return text.trim().split("+").map(t=>`<i>${t.trim()}</i>`).join("+");
         }
         const createShortcutHTML = (shortcut)=> {
@@ -908,16 +966,25 @@ class ImgNote {
                     `).join('')}
                 </table>
             `};
-
-        const shortcutsHTML = shortcuts.map(createShortcutHTML).join('');
-        this.dom.help = this.createAndAppendElement(null, "div", {
+        this.dom.help = {}
+        this.dom.help.container = this.createAndAppendElement(null, "div", {
             class: "imgnote-help",
-            innerHTML: shortcutsHTML
         });
+
+        this.dom.help.abstract = this.createAndAppendElement(this.dom.help.container, "div", {
+            class: "imgnote-help-abstract",
+            innerHTML: this.help.abstract
+        });
+
+        this.dom.help.shortcuts = this.createAndAppendElement(this.dom.help.container, "div", {
+            class: "imgnote-help-shortcuts",
+            innerHTML: this.help.shortcuts.map(createShortcutHTML).join('')
+        });
+
 
         const messageDomItems = this.displayFullScreenMessage({
             close: true,
-            dom: this.dom.help,
+            dom: this.dom.help.container,
             messageText: "<b>ImgNote</b> - Help"
         });
     }
