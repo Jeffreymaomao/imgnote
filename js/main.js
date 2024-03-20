@@ -104,7 +104,7 @@ class ImgNote {
         };
 
         // ---
-        this.createDefaultImgBase64(5000,3000,{grid:200,lineWidth:4})
+        this.createDefaultImgBase64(2500,1500,{grid:50,lineWidth:2})
             .then((base64)=>{
                 this.imgBase64 = base64;
                 this.initializeMainDOM();
@@ -116,7 +116,7 @@ class ImgNote {
                     this.imgBase64 = storedData.imgBase64;
                     this.initializeMainDOM();
                 } else {
-                    this.displayHelp()
+                    this.displayHelp();
                 } 
             })
             .catch((base64)=>{
@@ -130,7 +130,7 @@ class ImgNote {
                     this.imgBase64 = storedData.imgBase64;
                     this.initializeMainDOM();
                 } else {
-                    this.displayHelp()
+                    this.displayHelp();
                 } 
             })
 
