@@ -12,7 +12,6 @@ class ImgNote {
         this.saved = true;
         this.imgURL = null;
         this.windowEventListener = null;
-        this.imgBase64 = this.createDefaultImgBase64(5000,3000,{grid:200,lineWidth:4});
         this.data = {
             name: 'ImgNote',
             mode: "left",
@@ -24,6 +23,7 @@ class ImgNote {
         this.dom = {
             root: DOMparent||document.body,
             info: {},
+            help: {},
             loading: {},
             find: {},
             notes: [],
@@ -99,21 +99,42 @@ class ImgNote {
                         { action: "image : bottom", shortcut: "⌥ + 4" }
                     ]
                 }
-            ]
+            ],
+            copyright: "Developed by Yang-Chang Mao <a class='github' target='_blank' href='https://github.com/Jeffreymaomao/imgnote.github.io'>"
         };
 
         // ---
-        this.initializeMainDOM();
-        this.initializeWindowEventListener();
-        // ---
-        const storedData = this.retrieveFromLocalStorage();
-        if (storedData) {
-            this.data = storedData.data;
-            this.imgBase64 = storedData.imgBase64;
-            this.initializeMainDOM();
-        } else {
-            this.displayHelp()
-        }
+        this.createDefaultImgBase64(5000,3000,{grid:200,lineWidth:4})
+            .then((base64)=>{
+                this.imgBase64 = base64;
+                this.initializeMainDOM();
+                this.initializeWindowEventListener();
+                // ---
+                const storedData = this.retrieveFromLocalStorage();
+                if (storedData) {
+                    this.data = storedData.data;
+                    this.imgBase64 = storedData.imgBase64;
+                    this.initializeMainDOM();
+                } else {
+                    this.displayHelp()
+                } 
+            })
+            .catch((base64)=>{
+                this.imgBase64 = base64;
+                this.initializeMainDOM();
+                this.initializeWindowEventListener();
+                // ---
+                const storedData = this.retrieveFromLocalStorage();
+                if (storedData) {
+                    this.data = storedData.data;
+                    this.imgBase64 = storedData.imgBase64;
+                    this.initializeMainDOM();
+                } else {
+                    this.displayHelp()
+                } 
+            })
+
+        
     }
 
     loadingNewData(){
@@ -326,9 +347,9 @@ class ImgNote {
             this.selected.note.x = notePosition.x;
             this.selected.note.y = notePosition.y;
             if (this.dom.note) {
-                this.dom.note.text.value = this.selected.note.text;
                 this.dom.note.valueX.innerText = this.selected.note.x;
                 this.dom.note.valueY.innerText = this.selected.note.y;
+                if(this.selected.note.text!==undefined) this.dom.note.text.value = this.selected.note.text;
             }
         }
     }
@@ -434,6 +455,7 @@ class ImgNote {
         if (this.keys.code==="KeyA") {
             this.dom.img.style.cursor = 'crosshair';
         } else if (this.keys.code==="KeyD") {
+            if(!this.mousedown) this.dom.notes.forEach(e=>e.style.cursor = 'pointer');
             this.dom.img.style.cursor = 'grab';
         }
     }
@@ -594,7 +616,7 @@ class ImgNote {
         // 文字輸入框
         this.dom.loading.dataTextArea = this.createAndAppendElement(this.dom.loading.dataContainer, 'textarea', {
             class: 'imgnote-loading-data-text',
-            placeholder: 'Enter JSON data here...'
+            placeholder: 'Enter JSON configuration here, or leave blank to use the default settings.\n{\n\t"name": "ImgNote",\n\t"mode": "left",\n\t"size": 10,\n\t"notes": []\n}'
         });
 
         this.dom.loading.dataInput = this.createAndAppendElement(this.dom.loading.dataContainer, 'input', {
@@ -668,6 +690,7 @@ class ImgNote {
                 this.dom.loading.imgPreview.classList.add("failed");
                 this.dom.loading.imgPreview.classList.remove("loaded");
                 imgInputValid = false;
+                checkIsBothImgAndTextAreValid();
             });
             this.dom.loading.imgDropArea.addEventListener('drop', (e) => {
                 e.preventDefault();
@@ -696,6 +719,7 @@ class ImgNote {
                         this.dom.loading.imgPreview.src = base64;
                         this.dom.loading.imgPreview.alt = file.name; // 設置圖片的 alt 屬性為文件名
                         this.dom.loading.imgPreview.classList.add("loaded");
+                        checkValidOfTextInput();
                     };
                     reader.readAsDataURL(file); // 開始讀取文件
                 }
@@ -703,14 +727,20 @@ class ImgNote {
 
             // chack valid of text 
             const checkValidOfTextInput = ()=>{
-                if(this.isString2DataValid(this.dom.loading.dataTextArea.value)){
+                if(this.dom.loading.dataTextArea.value===''){
                     this.dom.loading.dataTextArea.classList.add("valid");
+                    this.data = {name: "ImgNote",mode: "left",size: 10,notes: []};
                     textInputValid = true;
+                    checkIsBothImgAndTextAreValid();
+                }else if (this.isString2DataValid(this.dom.loading.dataTextArea.value)){
+                    this.dom.loading.dataTextArea.classList.add("valid");
                     this.data = JSON.parse(this.dom.loading.dataTextArea.value);
+                    textInputValid = true;
                     checkIsBothImgAndTextAreValid();
                 } else {
                     this.dom.loading.dataTextArea.classList.remove("valid");
                     textInputValid = false;
+                    checkIsBothImgAndTextAreValid();
                 }
             }
             this.dom.loading.dataTextArea.addEventListener('drop', (e) => {
@@ -948,9 +978,9 @@ class ImgNote {
             if(searchText==="") return;
 
             this.dom.notes.forEach(noteDOM=>{
-                noteDOM.classList.remove("selected");
+                noteDOM.classList.remove("searched");
                 if(noteDOM.id.includes(searchText)){
-                    noteDOM.classList.add("selected");   
+                    noteDOM.classList.add("searched");   
                 }
             });
             
@@ -958,40 +988,45 @@ class ImgNote {
     }
 
     displayHelp(){
-        const parseShortcutIcon = (text)=>{
-            return text.trim().split("+").map(t=>`<i>${t.trim()}</i>`).join("+");
-        }
-        const createShortcutHTML = (shortcut)=> {
-            const shortcuts = this.isMac ? shortcut.macOS : shortcut.windows;
-            return `
-                <table>
-                    <tr>
-                        <th class="action">${shortcut.category}</th>
-                        <th class="icon">Shortcut</th>
-                    </tr>
-                    ${shortcuts.map(item => `
+        if(!this.dom.help.container){
+            const parseShortcutIcon = (text)=>{
+                return text.trim().split("+").map(t=>`<i>${t.trim()}</i>`).join("+");
+            }
+            const createShortcutHTML = (shortcut)=> {
+                const shortcuts = this.isMac ? shortcut.macOS : shortcut.windows;
+                return `
+                    <table>
                         <tr>
-                            <td class="action">${item.action}</td>
-                            <td class="icon">${parseShortcutIcon(item.shortcut)}</td>
+                            <th class="action">${shortcut.category}</th>
+                            <th class="icon">Shortcut</th>
                         </tr>
-                    `).join('')}
-                </table>
-            `};
-        this.dom.help = {}
-        this.dom.help.container = this.createAndAppendElement(null, "div", {
-            class: "imgnote-help",
-        });
+                        ${shortcuts.map(item => `
+                            <tr>
+                                <td class="action">${item.action}</td>
+                                <td class="icon">${parseShortcutIcon(item.shortcut)}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                `};
+            this.dom.help.container = this.createAndAppendElement(null, "div", {
+                class: "imgnote-help",
+            });
 
-        this.dom.help.abstract = this.createAndAppendElement(this.dom.help.container, "div", {
-            class: "imgnote-help-abstract",
-            innerHTML: this.help.abstract
-        });
+            this.dom.help.abstract = this.createAndAppendElement(this.dom.help.container, "div", {
+                class: "imgnote-help-abstract",
+                innerHTML: this.help.abstract
+            });
 
-        this.dom.help.shortcuts = this.createAndAppendElement(this.dom.help.container, "div", {
-            class: "imgnote-help-shortcuts",
-            innerHTML: this.help.shortcuts.map(createShortcutHTML).join('')
-        });
+            this.dom.help.shortcuts = this.createAndAppendElement(this.dom.help.container, "div", {
+                class: "imgnote-help-shortcuts",
+                innerHTML: this.help.shortcuts.map(createShortcutHTML).join('')
+            });
 
+            this.dom.help.copyright = this.createAndAppendElement(this.dom.help.container, "div", {
+                class: "imgnote-help-copyright",
+                innerHTML: this.help.copyright
+            });
+        }
 
         const messageDomItems = this.displayFullScreenMessage({
             close: true,
@@ -1240,21 +1275,33 @@ class ImgNote {
     }
 
     // ---
-    parseIdBy(name){
-        let id = `${name}`;
-        this.data.notes.map(e=>e.id).forEach(otherId=>{
-            if(otherId.includes(`${name}`)){
-                const splitName = otherId.split("|");
-                const n = splitName[1];
-                if(!n){
-                    id = `${name}|1`;
-                }else{
-                    const num = Number(n);
-                    id = `${splitName[0]}|${num+1}`
+    parseIdBy(inputId) {
+        // Check if the inputId is directly present in the data
+        const isDirectMatch = this.data.notes.some(note => note.id === inputId);
+        if (!isDirectMatch) {
+            // If not, we can safely return the inputId as it is unique
+            return inputId;
+        }
+
+        // Extract all ids that start with the inputId (including those with suffixes)
+        const relevantIds = this.data.notes
+            .map(note => note.id)
+            .filter(id => id.startsWith(inputId) && (id === inputId || id.startsWith(`${inputId}|`)));
+
+        // Determine the highest numerical suffix among these IDs
+        let highestSuffix = 0;
+        relevantIds.forEach(id => {
+            const parts = id.split('|');
+            if (parts.length > 1) {
+                const suffix = parseInt(parts[1], 10);
+                if (!isNaN(suffix)) {
+                    highestSuffix = Math.max(highestSuffix, suffix);
                 }
             }
         });
-        return id;
+
+        // Generate the new ID with the incremented highest suffix
+        return `${inputId}|${highestSuffix + 1}`;
     }
 
     isString2DataValid(data){
@@ -1271,32 +1318,65 @@ class ImgNote {
         return true;
     }
 
-    createDefaultImgBase64(width, height, config={}){
-        const gridSize = config.grid||25;
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.lineWidth =  config.lineWidth||1;
-        ctx.fillStyle = "rgb(255,255,255)";
-        ctx.strokeStyle = "rgb(0,0,0)";
-        ctx.fillRect(0, 0, width, height);
-        for (let x = 0; x < width; x += gridSize) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
-            ctx.closePath();
-            ctx.stroke();
-        }
-        for (let y = 0; y < height; y += gridSize) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-            ctx.closePath();
-            ctx.stroke();
-        }
-        const base64Data = canvas.toDataURL('image/jpeg');
-        return base64Data;
+    createDefaultImgBase64(width, height, config = {}) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const gridSize = config.grid || 25;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = "rgb(255,255,255)";
+            ctx.fillRect(0, 0, width, height);
+            function drawGrid() {
+                ctx.lineWidth = config.lineWidth || 1;
+                ctx.strokeStyle = "rgb(0,0,0)";
+                for (let x = 0; x < width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+            }
+
+            img.onload = function() {
+                const imgAspectRatio = img.width / img.height;
+                const canvasAspectRatio = width / height;
+                let renderWidth, renderHeight, offsetX, offsetY;
+
+                if (imgAspectRatio < canvasAspectRatio) {
+                    renderHeight = height;
+                    renderWidth = img.width * (renderHeight / img.height);
+                    offsetX = (width - renderWidth) / 2;
+                    offsetY = 0;
+                } else {
+                    renderWidth = width;
+                    renderHeight = img.height * (renderWidth / img.width);
+                    offsetX = 0;
+                    offsetY = (height - renderHeight) / 2;
+                }
+                ctx.globalAlpha = 0.2; 
+                ctx.drawImage(img, offsetX, offsetY, renderWidth, renderHeight);
+                ctx.globalAlpha = 1.0; 
+                drawGrid();
+                const base64Data = canvas.toDataURL('image/jpeg');
+                resolve(base64Data);
+            };
+
+            img.onerror = function(error) {
+                drawGrid();
+                const base64Data = canvas.toDataURL('image/jpeg');
+                reject(base64Data);
+            };
+
+            img.src = "css/icon/imgnote.png";
+        });
     }
 
     img2base64(imageUrl, callback) {
