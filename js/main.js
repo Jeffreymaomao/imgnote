@@ -2,7 +2,7 @@ window.addEventListener("load", (e) => {
     const main = document.querySelector("main");
     const imgnote = new ImgNote(main);
     window.imgnote = imgnote;
-    console.log(imgnote);
+    // console.log(imgnote);
 });
 
 class ImgNote {
