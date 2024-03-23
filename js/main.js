@@ -39,7 +39,8 @@ class ImgNote {
         this.selected = {
             id: null,
             note: null,
-            dom: null
+            dom: null,
+            point: null
         };
         this.help = {
             abstract: "ImgNote lets you add and manage note points on images with ease. Hold <i>a</i> and click <i><img src='css/icon/mouse.arrow.png' height='22pt'></i> to add a point, or press <i>Alt</i>/<i>⌥</i> + <i>h</i> for help.",
@@ -133,8 +134,6 @@ class ImgNote {
                     this.displayHelp();
                 } 
             })
-
-        
     }
 
     loadingNewData(){
@@ -281,7 +280,7 @@ class ImgNote {
         this.data.notes.forEach(note => {
             const id = note.id;
             const notePositionPixel = this.getNotePosition(note.x, note.y);
-            const promise = this.createNoteDOM(notePositionPixel.Xpx, notePositionPixel.Ypx, id);
+            const promise = this.createNoteDOM(notePositionPixel.Xpx, notePositionPixel.Ypx, id, note.icon);
             promises.push(promise);
         });
 
@@ -303,7 +302,7 @@ class ImgNote {
             // so here I minus the img-container position, in odrder to fixed the position of the note point.
             // Since, if I didn't using these, when the position of img-container is not located at (0,0),
             // the point will disapear.
-            this.createNoteDOM(e.clientX - imgContainerLeft, e.clientY - imgContainerTop, id);
+            this.createNoteDOM(e.clientX - imgContainerLeft, e.clientY - imgContainerTop, id, null);
             this.data.notes.push({
                 id: `${id}`,
                 x: mouse.x,
@@ -317,7 +316,8 @@ class ImgNote {
             this.selected = {
                 id: null,
                 note: null,
-                dom: null
+                dom: null,
+                point: null
             }
             // this.dom.noteContainer.innerHTML = '';
             if(this.dom.note) Object.values(this.dom.note).forEach(item=>{item.remove()})
@@ -326,6 +326,7 @@ class ImgNote {
             // if tag name is in the image and selected a note DOM
             noteDOM.classList.add('selected');
             const id = noteDOM.id;
+            this.selected.point = noteDOM;
             this.selected.id = id;
             this.selected.dom = noteDOM;
             this.selected.note = this.data.notes.find(item => item.id === id);
@@ -334,22 +335,15 @@ class ImgNote {
     }
 
     imgMousemoveEventListener(e) {
-        if (this.selected.id && this.mousedown) {
+        if (this.selected.id && this.mousedown && this.keys.code==='KeyD') {
             this.saved = false;
-            if (this.dom.note) {
-                this.dom.note.valueId.innerText = this.selected.note.id;
-                if (this.selected.note.text) {
-                    this.dom.note.text.value = this.selected.note.text;
-                }
-            }
-            if (this.keys.code !== 'KeyD') return;
             const notePosition = this.getPositionInImgContainer(e);
             this.selected.note.x = notePosition.x;
             this.selected.note.y = notePosition.y;
             if (this.dom.note) {
                 this.dom.note.valueX.innerText = this.selected.note.x;
                 this.dom.note.valueY.innerText = this.selected.note.y;
-                if(this.selected.note.text!==undefined) this.dom.note.text.value = this.selected.note.text;
+                // if(this.selected.note.text!==undefined) this.dom.note.text.value = this.selected.note.text;
             }
         }
     }
@@ -531,8 +525,8 @@ class ImgNote {
 
     // ---
     deleteSelectedNote(){
-        const { note, id, dom } = this.selected;
-        if (!note || !id || !dom) return;
+        const { note, id, dom, point } = this.selected;
+        if (!note || !id || !dom || !point) return;
 
         this.displayFullScreenMessage({
             close: false,
@@ -545,9 +539,12 @@ class ImgNote {
             confirmEventListener: ()=>{
                 dom.remove();
                 this.data.notes = this.data.notes.filter(item => item.id !== id);
-                this.selected.id = null;
-                this.selected.note = null;
-                this.selected.dom = null;
+                this.selected = {
+                    id: null,
+                    note: null,
+                    dom: null,
+                    point: null
+                };
                 Object.values(this.dom.note).forEach(item=>{item.remove()});
                 this.closeFullScreenMessage();
             },
@@ -562,7 +559,6 @@ class ImgNote {
     toogleTitle(){
         this.dom.title.classList.toggle("show");
     }
-
 
     createLoadingDataPage() {
         this.dom.loading.container = this.createAndAppendElement(null, 'div', {
@@ -789,11 +785,11 @@ class ImgNote {
         });
     }
 
-    createNoteDOM(Xpx, Ypx, id) {
+    createNoteDOM(Xpx, Ypx, id, icon=null) {
         return new Promise((resolve, reject) => {
             const noteDOM = this.createAndAppendElement(this.dom.imgContainer, "div", {
                 draggable: false,
-                class: "imgnote-note",
+                class: "imgnote-note no-icon",
                 id: id
             });
             noteDOM.style.left = `${Xpx}px`;
@@ -802,6 +798,12 @@ class ImgNote {
             noteDOM.style.height = `${this.size}px`;
             noteDOM.style.marginTop = `-${this.size/2}px`;
             noteDOM.style.marginLeft = `-${this.size/2}px`;
+            noteDOM.style.fontSize = `${this.size}px`;
+            noteDOM.style.lineHeight = `${this.size}px`;
+            if(icon){
+                noteDOM.classList.remove("no-icon");
+                noteDOM.innerText = icon;
+            }
             this.dom.notes.push(noteDOM);
             this.addDragEventListener(noteDOM);
             resolve(noteDOM);
@@ -817,7 +819,11 @@ class ImgNote {
             noteDOM.style.height = `${this.size}px`;
             noteDOM.style.marginTop = `-${this.size/2}px`;
             noteDOM.style.marginLeft = `-${this.size/2}px`;
+            noteDOM.style.fontSize = `${this.size}px`;
+            noteDOM.style.lineHeight = `${this.size}px`;
         });
+
+        this.data.size = this.size;
     }
 
     decreaseSize(){
@@ -831,7 +837,11 @@ class ImgNote {
             noteDOM.style.height = `${this.size}px`;
             noteDOM.style.marginTop = `-${this.size/2}px`;
             noteDOM.style.marginLeft = `-${this.size/2}px`;
+            noteDOM.style.fontSize = `${this.size}px`;
+            noteDOM.style.lineHeight = `${this.size}px`;
         });
+
+        this.data.size = this.size;
     }
 
     // ---
@@ -970,6 +980,9 @@ class ImgNote {
 
         this.dom.find.close.addEventListener("click", (e)=>{
             if(this.dom.find.container) this.dom.find.container.remove();
+            this.dom.notes.forEach(noteDOM=>{
+                noteDOM.classList.remove("searched");
+            })
             this.dom.find = {};
         });
 
@@ -1050,17 +1063,18 @@ class ImgNote {
             class: "imgnote-note-title"
         });
 
-        this.dom.note.text = this.createAndAppendElement(this.dom.noteContainer, "textarea", {
-            class: "imgnote-note-text",
-            placeholder: "type some notes...",
-            value: this.selected.note.text || '',
-            tabIndex: -1
-        });
-
         this.dom.note.labelId = this.createAndAppendElement(this.dom.note.title, "h4", {
             class: "imgnote-note-label",
-            innerText: "ID : ",
+            innerText: "ID : "
         });
+
+        this.dom.note.icon = this.createAndAppendElement(this.dom.note.labelId, "input", {
+            class: "imgnote-note-icon-input empty"
+        });
+        if(this.selected.note.icon){
+            this.dom.note.icon.value = this.selected.note.icon;
+            this.dom.note.icon.classList.remove("empty");
+        }
 
         this.dom.note.labelX = this.createAndAppendElement(this.dom.note.title, "h5", {
             class: "imgnote-note-label",
@@ -1089,6 +1103,13 @@ class ImgNote {
             innerText: this.selected.note.y
         });
 
+        this.dom.note.text = this.createAndAppendElement(this.dom.noteContainer, "textarea", {
+            class: "imgnote-note-text",
+            placeholder: "type some notes...",
+            value: this.selected.note.text || '',
+            tabIndex: -1
+        });
+
         this.dom.note.valueId.addEventListener("input", (e) => {
             const inputId = this.dom.note.valueId.value;
             const parseID = this.parseIdBy(inputId);
@@ -1103,6 +1124,21 @@ class ImgNote {
             this.saved = false;
             this.selected.note.text = this.dom.note.text.value;
             if (!this.selected.note.text) this.selected.note.text = undefined;
+        });
+
+        this.dom.note.icon.addEventListener("input", (e) => {
+            this.saved = false;
+            this.selected.note.icon = this.dom.note.icon.value;
+            if (!this.selected.note.icon){
+                this.selected.note.icon = undefined;
+                this.selected.point.innerHTML = "";
+                this.selected.point.classList.add("no-icon");
+                this.dom.note.icon.classList.add("empty");
+            } else {
+                this.selected.point.innerHTML = this.dom.note.icon.value;
+                this.selected.point.classList.remove("no-icon");
+                this.dom.note.icon.classList.remove("empty");
+            }
         });
     }
 

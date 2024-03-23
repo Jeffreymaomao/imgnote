@@ -502,41 +502,97 @@ img.logo-icon {
 .imgnote-note {
 	position: absolute;
 	transform: scale(1.0);
-	background-color: red;
-	border-radius: 100%;
-	border: 0.5px solid #000;
-
 	transition: box-shadow 0.3s ease, 
 				transform 0.3s ease,
 				background-color 0.3s ease;
+
+	text-align: center;
+	vertical-align: middle;
+	font-style: normal;
+	padding: 0;
+	margin: 0;
+	user-select: none;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .imgnote-note:hover {
     transform: scale(1.2);
 }
 
-.searched {
-	background-color: blue;
-    transform: scale(1.2);
-    box-shadow: 0px 0px 16px rgb(100, 100, 200),
-                0px 0px 16px rgb(100, 100, 200);
-    animation: blinker 1s linear infinite;
+.imgnote-note {
+	background-color: transparent;
+	border-radius: 0;
+	border: none;
 }
 
 .imgnote-note.selected {
-    background-color: yellow;
-    transform: scale(1.2);
-    box-shadow: 0px 0px 16px rgb(200, 200, 100),
-                0px 0px 16px rgb(200, 200, 100);
-    animation: blinker 1s linear infinite;
+	transform: scale(1.2);
+	text-shadow: 0px 0px 16px red,
+				0px 0px 16px red,
+                0px 0px 16px red;
+    animation: selected-blinker 1s linear infinite;
 }
 
-@keyframes blinker {
+.imgnote-note.searched {
+    transform: scale(1.2);
+    text-shadow: 0px 0px 16px blue,
+                0px 0px 16px blue;
+    animation: searched-blinker 1s linear infinite;
+}
+
+@keyframes selected-blinker {
     50% {
-        box-shadow: 0px 0px 0px #000,
-                    0px 0px 0px #000;
+        text-shadow: 0px 0px 2px red,
+                    0px 0px 2px red;
     }
 }
+
+@keyframes searched-blinker {
+    50% {
+        text-shadow: 0px 0px 2px blue,
+                    0px 0px 2px blue;
+    }
+}
+
+/* no icon */
+.imgnote-note.no-icon {
+	background-color: red;
+	border-radius: 100%;
+	border: 0.5px solid #000;
+}
+
+.imgnote-note.selected.no-icon{
+	background-color: red;
+    transform: scale(1.2);
+    box-shadow: 0px 0px 16px red,
+                0px 0px 16px red;
+    animation: no-icon-selected-blinker 1s linear infinite;
+}
+
+.imgnote-note.no-icon.searched {
+    transform: scale(1.2);
+    box-shadow: 0px 0px 16px blue,
+                0px 0px 16px blue;
+    animation: no-icon-searched-blinker 1s linear infinite;
+}
+
+@keyframes no-icon-selected-blinker {
+    50% {
+        box-shadow: 0px 0px 0px red,
+                    0px 0px 0px red;
+    }
+}
+
+@keyframes no-icon-searched-blinker {
+    50% {
+        box-shadow: 0px 0px 0px blue,
+                    0px 0px 0px blue;
+    }
+}
+
 
 /* --- */
 .imgnote-note-container {
@@ -604,7 +660,42 @@ h4.imgnote-note-label {
 	font-size: 15pt;
 	margin: 0;
 	padding: 10px 20px;
+	padding-left: 50px;
     color: #000;
+}
+
+.imgnote-note-icon-input {
+	opacity: 1.0;
+	position: absolute;
+	left: 15px;
+	top: 11px;
+	width: 26px;
+	height: 26px;
+	color: #000;
+	user-select: none;
+	transform: scale(1.0);
+	transition: all 0.3s ease;
+	cursor: pointer;
+	text-align: center;
+
+	outline: none;
+	border: none;
+}
+
+.imgnote-note-icon-input:hover {
+	transform: scale(1.1);
+}
+
+.imgnote-note-icon-input:active {
+	transform: scale(0.9);
+}
+
+.imgnote-note-icon-input.empty {
+	opacity: 0.5;
+	background: url("icon/addEmoji.svg");
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 100%;
 }
 
 h5.imgnote-note-label {
@@ -638,7 +729,6 @@ label.imgnote-note-value {
   color: #888;
   opacity: 1;
 }
-
 
 /* --- */
 .imgnote-blur-container {
@@ -838,6 +928,16 @@ label.imgnote-note-value {
 
 .imgnote-find-close:active {
 	transform: translateY(-50%) scale(0.9);
+}
+
+.imgnote-find-noteicon{
+	background-color: #333;
+	border: 1px solid red;
+	width: 100px;
+	height: 100px;
+	position: absolute;
+	right: 0;
+	top: 0;
 }
 
 
