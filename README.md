@@ -1,22 +1,24 @@
-# ImgNote 
+<p align='center'>
+<a href='https://jeffreymaomao.github.io/imgnote/'>
+    <img alt="ImgNote Logo" src="./css/icon/imgnote.png" width='120'>
+</a>
+<br>
+<h1 align='center'>ImgNote</h1>
+</p>
 
-- web app: [https://jeffreymaomao.github.io/imgnote.github.io/](https://jeffreymaomao.github.io/imgnote.github.io/)
-
-- Author: Chang-Mao Yang
-
-
+The **ImgNote** is a web-application designed to add and manage note points on images with ease.
 
 
 ## Shortcuts
 
 ### Edit
-| Action               | Windows                                                  | macOS                                                    |
-| -------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
-| Add new note point   | a + <img src="css/icon/mouse.arrow.png" height="22pt"> | a + <img src="css/icon/mouse.arrow.png" height="22pt"> |
-| Drag note point      | d + <img src="css/icon/mouse.arrow.png" height="22pt"> | d + <img src="css/icon/mouse.arrow.png" height="22pt"> |
-| Increase size        | Alt + ↑                                                  | ⌥ + ↑                                                    |
-| Decrease size        | Alt + ↓                                                  | ⌥ + ↓                                                    |
-| Delete selected note | Ctrl + ⌫                                                 | ⌘ + ⌫                                                    |
+| Action               | Windows                                                      | macOS                                                        |
+| -------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| Add new note point   | <kbd>a</kbd> + <img src="css/icon/mouse.arrow.png" height="22pt"> | <kbd>a</kbd> + <img src="css/icon/mouse.arrow.png" height="22pt"> |
+| Drag note point      | <kbd>d</kbd> + <img src="css/icon/mouse.arrow.png" height="22pt"> | <kbd>d</kbd> + <img src="css/icon/mouse.arrow.png" height="22pt"> |
+| Increase size        | <kbd>Alt</kbd> + <kbd>↑</kbd>                                | <kbd>⌥</kbd> + <kbd>↑</kbd>                                  |
+| Decrease size        | <kbd>Alt</kbd> + <kbd>↓</kbd>                                | <kbd>⌥</kbd> + <kbd>↓</kbd>                                  |
+| Delete selected note | <kbd>Ctrl</kbd> + <kbd>⌫</kbd>                               | <kbd>⌘</kbd> + <kbd>⌫</kbd>                                  |
 
 ### View
 | Action                | Windows | macOS |
