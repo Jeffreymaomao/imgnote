@@ -1357,6 +1357,7 @@ class ImgNote {
     createDefaultImgBase64(width, height, config = {}) {
         return new Promise((resolve, reject) => {
             const img = new Image();
+            img.crossOrigin = "anonymous";
             const gridSize = config.grid || 25;
             const canvas = document.createElement('canvas');
             canvas.width = width;
